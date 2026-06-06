@@ -1,0 +1,29 @@
+# Render Blueprint. В Render: New → Blueprint → выбрать этот репозиторий.
+# Секреты (DATABASE_URL, TELEGRAM_BOT_TOKEN, домены) задаются в дашборде (sync:false).
+services:
+  - type: web
+    name: pepsi-backend
+    runtime: python
+    rootDir: Backend
+    plan: free
+    buildCommand: "bash build.sh"
+    startCommand: "gunicorn pepsi_backend.wsgi:application --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        generateValue: true          # Render сгенерирует случайный ключ
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        sync: false                  # строка подключения Neon (с ?sslmode=require)
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false                  # токен бота от @BotFather
+      - key: TELEGRAM_ALLOW_INSECURE
+        value: "True"                # True для теста в браузере; False — только Telegram
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false                  # https://<проект>.pages.dev
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false                  # https://<проект>.pages.dev

@@ -1,0 +1,21 @@
+# Python / окружение
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Django
+Backend/db.sqlite3
+Backend/staticfiles/
+Backend/.env
+.env
+
+# Node (фронтенд)
+node_modules/
+dist/
+
+# IDE / ОС
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

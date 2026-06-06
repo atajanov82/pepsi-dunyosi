@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>Pepsi Dunyosi</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:#001e44;color:#fff;font-weight:600;
+    overflow-x:hidden;
+  }
+  button,input{font-family:inherit;font-weight:600}
+  a{color:inherit;text-decoration:none}
+
+  .app{
+    max-width:600px;margin:0 auto;min-height:100vh;
+    background:
+      radial-gradient(1000px 500px at -10% -10%,rgba(30,99,255,.45),transparent 60%),
+      radial-gradient(800px 500px at 110% 10%,rgba(255,42,109,.25),transparent 60%),
+      radial-gradient(700px 600px at 50% 110%,rgba(0,194,255,.20),transparent 60%),
+      linear-gradient(180deg,#004B93 0%,#002a5c 60%,#001633 100%);
+    position:relative;padding-bottom:90px;
+    box-shadow:0 0 60px rgba(0,0,0,.4);
+  }
+  .app::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:18px 18px;mix-blend-mode:overlay;opacity:.4;
+  }
+
+  /* Header */
+  .header{
+    position:sticky;top:0;z-index:30;
+    display:flex;align-items:center;gap:12px;
+    padding:14px 16px;
+    background:linear-gradient(180deg,#004B93,#003163);
+    border-bottom:1px solid rgba(255,255,255,.10);
+    backdrop-filter:blur(10px);
+  }
+  .header .icon-btn{
+    background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:12px;
+    width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;
+    transition:.15s;
+  }
+  .header .icon-btn:active{transform:scale(.92)}
+  .cart-btn{position:relative}
+  .cart-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;
+    background:#ff2a6d;color:#fff;border-radius:999px;font-size:11px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;line-height:1}
+  .header h1{font-size:17px;font-weight:800;flex:1;text-align:center;letter-spacing:.3px}
+  .header .right{display:flex;gap:8px}
+
+  /* Pepsi logo */
+  .pepsi-logo{
+    width:46px;height:46px;border-radius:50%;
+    background:conic-gradient(from 0deg,#e32636 0deg 180deg,#fff 180deg 220deg,#004B93 220deg 360deg);
+    position:relative;flex-shrink:0;
+    box-shadow:0 6px 20px rgba(0,0,0,.35),inset 0 0 0 2px #fff;
+  }
+  .pepsi-logo::after{
+    content:"";position:absolute;inset:6px;border-radius:50%;
+    background:conic-gradient(from -10deg,#e32636 0deg 170deg,#fff 170deg 215deg,#004B93 215deg 360deg);
+    box-shadow:inset 0 0 0 2px #fff;
+  }
+  .pepsi-hero{
+    width:120px;height:120px;border-radius:50%;
+    background:conic-gradient(from 0deg,#e32636 0deg 180deg,#fff 180deg 220deg,#004B93 220deg 360deg);
+    position:relative;
+    box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 6px rgba(255,255,255,.15),inset 0 0 0 4px #fff;
+    animation:spin 18s linear infinite;
+  }
+  .pepsi-hero::after{
+    content:"";position:absolute;inset:14px;border-radius:50%;
+    background:conic-gradient(from -10deg,#e32636 0deg 170deg,#fff 170deg 215deg,#004B93 215deg 360deg);
+    box-shadow:inset 0 0 0 4px #fff;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hero-wrap{
+    display:flex;flex-direction:column;align-items:center;gap:14px;
+    padding:28px 16px 22px;text-align:center;
+  }
+  .hero-wrap h2{
+    font-size:30px;font-weight:900;letter-spacing:1px;
+    background:linear-gradient(180deg,#fff,#c7defc);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 4px 24px rgba(30,99,255,.4);
+  }
+  .hero-wrap p{font-size:13px;opacity:.8;font-weight:500;max-width:340px}
+
+  /* Bottom nav */
+  .tabbar{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:600px;background:#003163;
+    display:flex;justify-content:space-around;padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-top:1px solid rgba(255,255,255,.08);z-index:40;
+  }
+  .tabbar button{
+    background:transparent;color:rgba(255,255,255,.7);border:none;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:8px 12px;border-radius:999px;font-size:11px;cursor:pointer;min-width:60px;
+    transition:.15s;
+  }
+  .tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}
+  .tabbar button.active{background:#fff;color:#004B93}
+
+  /* Screens */
+  .screen{display:none;padding:16px;animation:fade .25s ease;position:relative;z-index:1}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+
+  /* Cards */
+  .card{
+    background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.06));
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:20px;padding:18px;margin-bottom:14px;
+    box-shadow:0 10px 30px -18px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .card.white{background:#fff;color:#0b2447;border-color:#fff}
+  .card h3{font-size:15px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .card h3::before{content:"";width:4px;height:16px;border-radius:2px;background:linear-gradient(180deg,#1e63ff,#ff2a6d)}
+  .muted{opacity:.75;font-weight:500;font-size:13px}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:linear-gradient(135deg,#1e63ff,#0046d4);color:#fff;border:none;border-radius:14px;
+    padding:14px 18px;font-size:15px;font-weight:800;width:100%;cursor:pointer;
+    box-shadow:0 10px 24px -10px #1e63ff,inset 0 1px 0 rgba(255,255,255,.25);
+    transition:.15s;letter-spacing:.3px;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+  .btn.ghost{background:rgba(255,255,255,.10);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:none}
+  .btn.dark{background:#0b2447}
+
+  input[type=text],input[type=tel],input[type=number]{
+    width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+    color:#fff;border-radius:12px;padding:14px 14px;font-size:15px;outline:none;
+  }
+  input::placeholder{color:rgba(255,255,255,.6)}
+  .white input{background:#f3f6fb;color:#0b2447;border-color:#e2e8f0}
+  .white input::placeholder{color:#94a3b8}
+
+  /* Carousel */
+  .carousel{position:relative;border-radius:20px;overflow:hidden;margin-bottom:14px;
+    background:linear-gradient(135deg,#1e63ff 0%,#0b2447 100%);min-height:160px}
+  .slides{display:flex;transition:transform .4s ease}
+  .slide{min-width:100%;height:160px;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:900;font-size:28px;letter-spacing:1px;text-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .slide.s1{background:radial-gradient(circle at 30% 30%,#1e63ff,#003a78)}
+  .slide.s2{background:radial-gradient(circle at 70% 60%,#ff2a6d,#1e63ff)}
+  .slide.s3{background:radial-gradient(circle at 40% 70%,#00c2ff,#003a78)}
+  .dots{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+  .dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4)}
+  .dots span.active{background:#fff;width:18px;border-radius:4px}
+
+  /* Steps */
+  .step{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+  .step .num{
+    width:34px;height:34px;border-radius:50%;background:#1e63ff;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0
+  }
+  .step b{display:block;margin-bottom:2px}
+  .step span{font-size:13px;opacity:.8;font-weight:500}
+
+  /* Stats grid */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .stat{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;padding:14px 8px;text-align:center}
+  .stat .v{font-size:20px;font-weight:900}
+  .stat .l{font-size:11px;opacity:.7;margin-top:4px}
+
+  /* Countdown */
+  .countdown{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+  .cd{background:#0b2447;border-radius:12px;padding:12px 4px;text-align:center}
+  .cd .n{font-size:22px;font-weight:900;color:#fff}
+  .cd .u{font-size:10px;opacity:.7;margin-top:2px}
+
+  /* Survey banner */
+  .survey-banner{
+    background:linear-gradient(135deg,#ffb347,#ff7a2d);
+    border-radius:18px;padding:16px;display:flex;align-items:center;justify-content:space-between;
+    color:#fff;margin-bottom:14px;cursor:pointer;
+  }
+  .survey-banner b{font-size:15px;display:block}
+  .survey-banner span{font-size:12px;opacity:.95}
+
+  /* Invite row */
+  .row{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+  .row .chev{opacity:.7}
+
+  /* Code list */
+  .code-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 14px;background:rgba(255,255,255,.08);border-radius:12px;margin-bottom:8px;
+  }
+  .badge{font-size:11px;padding:4px 10px;border-radius:999px;font-weight:800}
+  .badge.ok{background:#16a34a;color:#fff}
+  .badge.bad{background:#dc2626;color:#fff}
+  .badge.used{background:#a16207;color:#fff}
+  .badge.prep{background:#d97706;color:#fff}
+  .badge.ship{background:#1e63ff;color:#fff}
+  .badge.arrived{background:#0891b2;color:#fff}
+  .badge.done{background:#16a34a;color:#fff}
+  .badge.cancel{background:#dc2626;color:#fff}
+  .order-item{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);
+    border-radius:14px;padding:12px 14px;margin-bottom:10px}
+  .empty{text-align:center;padding:40px 20px;opacity:.7}
+  .empty .ic{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;font-weight:900}
+
+  /* Tabs */
+  .pills{display:flex;background:rgba(255,255,255,.10);border-radius:14px;padding:4px;margin-bottom:14px}
+  .pills button{flex:1;background:transparent;color:#fff;border:none;padding:10px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px}
+  .pills button.active{background:#fff;color:#004B93}
+
+  /* Prize */
+  .prize{background:rgba(255,255,255,.10);border-radius:14px;margin-bottom:10px;overflow:hidden}
+  .prize-h{display:flex;align-items:center;gap:12px;padding:12px;cursor:pointer}
+  .prize-img{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,#1e63ff,#003a78);
+    display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+  .prize-h b{flex:1;font-size:14px}
+  .prize-h .arr{transition:.2s}
+  .prize.open .prize-h .arr{transform:rotate(180deg)}
+  .prize-body{display:none;padding:0 12px 12px;font-size:13px;opacity:.85;font-weight:500;line-height:1.5}
+  .prize.open .prize-body{display:block}
+
+  /* Shop */
+  .shop-balance{background:#1e63ff;border-radius:16px;padding:18px;text-align:center;margin-bottom:14px}
+  .shop-balance .v{font-size:30px;font-weight:900}
+  .shop-balance .l{font-size:12px;opacity:.85}
+  .product{display:flex;gap:12px;background:rgba(255,255,255,.10);border-radius:14px;padding:12px;margin-bottom:10px;align-items:center}
+  .product-img{width:60px;height:60px;border-radius:12px;background:linear-gradient(135deg,#1e63ff,#003a78);
+    display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+  .product .info{flex:1}
+  .product .info b{display:block;font-size:14px}
+  .product .info span{font-size:13px;opacity:.8;font-weight:500}
+  .product .buy{background:#1e63ff;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer;font-size:13px}
+
+  /* Profile */
+  .profile-card{display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.10);
+    border-radius:16px;padding:16px;margin-bottom:14px}
+  .avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#1e63ff,#ff2a6d);
+    display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900}
+  .profile-card .info b{font-size:16px;display:block}
+  .profile-card .info span{font-size:12px;opacity:.75;font-weight:500;display:block;margin-top:2px}
+
+  .reward-chip{display:inline-block;background:rgba(255,255,255,.18);border-radius:999px;
+    padding:6px 12px;font-size:12px;margin:8px 0}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+  .modal-bg.active{display:flex}
+  .modal{background:#fff;color:#0b2447;border-radius:20px;padding:22px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto}
+  .modal h2{font-size:18px;margin-bottom:8px}
+  .modal p{font-size:14px;line-height:1.55;font-weight:500;margin-bottom:10px}
+  .check{display:flex;gap:10px;align-items:center;font-size:14px;margin:14px 0;cursor:pointer}
+  .check input{width:20px;height:20px;accent-color:#1e63ff}
+
+  .toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);
+    background:#0b2447;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;
+    z-index:200;opacity:0;transition:.25s;pointer-events:none;max-width:90%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+
+  .footer-credit{text-align:center;font-size:12px;opacity:.6;padding:10px;margin-top:6px}
+
+  .invite-card{background:linear-gradient(135deg,#1e63ff,#004B93);border-radius:16px;padding:16px;margin-bottom:14px}
+  .section-title{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin:18px 0 10px}
+
+  .logo-pill{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#004B93;
+    padding:4px 12px;border-radius:999px;font-weight:900;font-size:14px}
+</style>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+
+<!-- ONBOARDING MODALS -->
+<div class="modal-bg" id="ob1">
+  <div class="modal">
+    <h2>Регистрация</h2>
+    <p class="muted" style="color:#64748b">Введите ваши данные для регистрации</p>
+    <div style="margin-top:14px">
+      <label style="font-size:13px;color:#64748b">Имя</label>
+      <input type="text" id="ob-name" placeholder="Ваше имя" style="margin-top:6px;background:#f3f6fb;color:#0b2447;border-color:#e2e8f0">
+    </div>
+    <div style="margin-top:12px">
+      <label style="font-size:13px;color:#64748b">Телефон</label>
+      <input type="tel" id="ob-phone" placeholder="+998 __ ___ __ __" style="margin-top:6px;background:#f3f6fb;color:#0b2447;border-color:#e2e8f0">
+    </div>
+    <button class="btn" style="margin-top:18px" onclick="obStep1()">Зарегистрироваться</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="ob2">
+  <div class="modal">
+    <h2>Политика и соглашение</h2>
+    <div style="max-height:240px;overflow-y:auto;background:#f3f6fb;padding:12px;border-radius:12px;font-size:13px;color:#334155;line-height:1.55;font-weight:500">
+      Настоящее пользовательское соглашение регулирует отношения между ООО «Pepsi Dunyosi» и пользователем приложения.
+      Используя приложение, вы соглашаетесь с обработкой персональных данных, участием в акциях и розыгрышах.
+      Призы выдаются победителям согласно правилам акции. Организатор оставляет за собой право изменять условия акции.
+      Все коды под крышками — уникальны и могут быть зарегистрированы только один раз.
+      Накопленные рубли (внутренняя валюта приложения) можно обменять на призы из магазина или участвовать в розыгрышах.
+      Возрастное ограничение: 8+. Полные правила доступны на сайте организатора.
+      Нажимая «Продолжить», вы подтверждаете, что прочитали и согласны с условиями.
+    </div>
+    <label class="check"><input type="checkbox" id="ob-agree" onchange="document.getElementById('ob-continue').disabled=!this.checked">
+      Я согласен с условиями</label>
+    <button class="btn" id="ob-continue" disabled onclick="obStep2()">Продолжить</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="ob3">
+  <div class="modal">
+    <h2>Возрастная проверка</h2>
+    <p class="muted" style="color:#64748b">Укажите ваш год рождения</p>
+    <input type="number" id="ob-year" placeholder="Например, 1995" min="1900" max="2025"
+      style="margin-top:12px;background:#f3f6fb;color:#0b2447;border-color:#e2e8f0">
+    <button class="btn" style="margin-top:18px" onclick="obStep3()">Подтвердить</button>
+  </div>
+</div>
+
+<!-- SURVEY MODAL -->
+<div class="modal-bg" id="surveyModal">
+  <div class="modal">
+    <h2>Опрос Pepsi</h2>
+    <p class="muted" style="color:#64748b">Ответьте на несколько вопросов и получите 250 ₽</p>
+    <div id="surveyForm" style="margin-top:14px;font-size:14px;color:#0b2447">
+      <p style="margin:10px 0 6px"><b>1. Как часто вы пьёте Pepsi?</b></p>
+      <label class="check"><input type="radio" name="q1"> Каждый день</label>
+      <label class="check"><input type="radio" name="q1"> Несколько раз в неделю</label>
+      <label class="check"><input type="radio" name="q1"> Редко</label>
+      <p style="margin:10px 0 6px"><b>2. Какой объём предпочитаете?</b></p>
+      <label class="check"><input type="radio" name="q2"> 0.5 л</label>
+      <label class="check"><input type="radio" name="q2"> 1 л</label>
+      <label class="check"><input type="radio" name="q2"> 2 л</label>
+    </div>
+    <button class="btn" onclick="finishSurvey()">Завершить опрос</button>
+  </div>
+</div>
+
+<div class="app">
+  <header class="header">
+    <button class="icon-btn" onclick="goBack()">←</button>
+    <div class="pepsi-logo"></div>
+    <h1>Pepsi Dunyosi</h1>
+    <div class="right">
+      <button class="icon-btn cart-btn" onclick="setTab('cart')" aria-label="Корзина">🛒<span id="cart-count" class="cart-badge" style="display:none">0</span></button>
+      <button class="icon-btn">✕</button>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <section class="screen active" id="home">
+    <div class="hero-wrap">
+      <div class="pepsi-hero"></div>
+      <h2>PEPSI DUNYOSI</h2>
+      <p>Пей Pepsi · собирай коды · выигрывай миллионы призов каждый день</p>
+    </div>
+
+    <div class="carousel">
+      <div class="slides" id="slides">
+        <div class="slide s1">ПЕЙ · ВЫИГРЫВАЙ</div>
+        <div class="slide s2">МИЛЛИОНЫ ПРИЗОВ</div>
+        <div class="slide s3">КАЖДЫЙ ДЕНЬ</div>
+      </div>
+      <div class="dots" id="dots"><span class="active"></span><span></span><span></span></div>
+    </div>
+
+    <div class="card">
+      <h3>Как участвовать в акции?</h3>
+      <div class="step"><div class="num">1</div><div><b>Введите код под крышкой</b><span>Найдите уникальный код на внутренней стороне крышки</span></div></div>
+      <div class="step"><div class="num">2</div><div><b>Участвуйте в розыгрыше призов</b><span>Каждый код — это шанс выиграть</span></div></div>
+      <div class="step"><div class="num">3</div><div><b>Копите рубли и обменивайте на призы</b><span>Тратьте баланс в магазине приложения</span></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Введите ваш код</h3>
+      <input type="text" id="codeInput" placeholder="Например, PEPSI2026" style="text-transform:uppercase">
+      <button class="btn" style="margin-top:12px" onclick="submitCode()">Отправить код</button>
+    </div>
+
+    <div class="card row" onclick="setTab('profile')">
+      <div>
+        <b>Пригласить друзей</b>
+        <div class="muted">Получите рубли за приглашение</div>
+      </div>
+      <div class="chev">›</div>
+    </div>
+
+    <div class="survey-banner" onclick="openSurvey()">
+      <div>
+        <b>Пройти опрос</b>
+        <span>и получить 250 ₽ на баланс!</span>
+      </div>
+      <div style="font-size:28px">🎁</div>
+    </div>
+
+    <div class="section-title">Моя статистика</div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="s-codes">0</div><div class="l">Коды</div></div>
+      <div class="stat"><div class="v" id="s-prizes">0</div><div class="l">Призы</div></div>
+      <div class="stat"><div class="v" id="s-rub">0 ₽</div><div class="l">Рубли</div></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3>До розыгрыша осталось</h3>
+      <div class="countdown">
+        <div class="cd"><div class="n" id="cd-d">00</div><div class="u">Дни</div></div>
+        <div class="cd"><div class="n" id="cd-h">00</div><div class="u">Часы</div></div>
+        <div class="cd"><div class="n" id="cd-m">00</div><div class="u">Мин</div></div>
+        <div class="cd"><div class="n" id="cd-s">00</div><div class="u">Сек</div></div>
+      </div>
+      <div class="muted" style="text-align:center;margin-top:8px" id="raffle-caption"></div>
+    </div>
+
+    <button class="btn ghost" onclick="watchRecordings()">Записи розыгрышей</button>
+
+    <div class="footer-credit">@uzpepsibot</div>
+  </section>
+
+  <!-- CODES -->
+  <section class="screen" id="codes">
+    <h2 style="font-size:20px;font-weight:900">История кодов</h2>
+    <p class="muted" style="margin-bottom:14px">Все отправленные коды и их статусы</p>
+    <div class="stats" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
+      <div class="stat"><div class="v" id="c-count">0</div><div class="l">Кодов отправлено</div></div>
+      <div class="stat"><div class="v" id="c-rub">0 ₽</div><div class="l">Всего рублей</div></div>
+    </div>
+    <div id="codeList"></div>
+    <div class="footer-credit">@uzpepsibot</div>
+  </section>
+
+  <!-- PRIZES -->
+  <section class="screen" id="prizes">
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="v" id="p-received">0</div><div class="l">Получено</div></div>
+      <div class="stat"><div class="v" id="p-pending">0</div><div class="l">Ожидают</div></div>
+      <div class="stat"><div class="v" id="p-buys">0</div><div class="l">Покупки</div></div>
+    </div>
+    <div class="pills">
+      <button class="active" onclick="setPill(this,'all')">Все призы</button>
+      <button onclick="setPill(this,'won')">Выигранные</button>
+      <button onclick="setPill(this,'buys')">Покупки</button>
+    </div>
+    <div id="prizesList"></div>
+    <div class="footer-credit">@uzpepsibot</div>
+  </section>
+
+  <!-- SHOP -->
+  <section class="screen" id="shop">
+    <div class="shop-balance">
+      <div class="l">Ваш баланс</div>
+      <div class="v"><span id="shop-bal">0</span> ₽</div>
+    </div>
+    <div id="productList"></div>
+    <div class="footer-credit">@uzpepsibot</div>
+  </section>
+
+  <!-- CART / ЗАКАЗЫ -->
+  <section class="screen" id="cart">
+    <h2 style="font-size:20px;font-weight:900">Корзина</h2>
+    <p class="muted" style="margin-bottom:14px">Ваши заказы и их статусы доставки</p>
+    <div id="orderList"></div>
+    <div class="footer-credit">@uzpepsibot</div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="screen" id="profile">
+    <div class="profile-card">
+      <div class="avatar" id="pf-ava">U</div>
+      <div class="info">
+        <b id="pf-name">Пользователь</b>
+        <span id="pf-id">ID: 000000</span>
+        <span id="pf-since">С нами с —</span>
+      </div>
+    </div>
+
+    <div class="invite-card">
+      <b style="font-size:15px">Пригласите друзей</b>
+      <div style="font-size:13px;opacity:.9;margin-top:4px">Получайте рубли за каждого приглашённого друга</div>
+      <div class="reward-chip">🎁 Получите 10 ₽ за каждого друга</div>
+      <button class="btn" style="background:#fff;color:#004B93" onclick="invite()">Пригласить друзей</button>
+    </div>
+
+    <div class="section-title">Моя статистика</div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="pf-codes">0</div><div class="l">Коды</div></div>
+      <div class="stat"><div class="v" id="pf-prizes">0</div><div class="l">Призы</div></div>
+      <div class="stat"><div class="v" id="pf-rub">0 ₽</div><div class="l">Рубли</div></div>
+    </div>
+    <div class="footer-credit">@uzpepsibot</div>
+  </section>
+
+  <nav class="tabbar">
+    <button class="active" data-tab="home" onclick="setTab('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+      Главная
+    </button>
+    <button data-tab="codes" onclick="setTab('codes')">
+      <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+      Коды
+    </button>
+    <button data-tab="prizes" onclick="setTab('prizes')">
+      <svg viewBox="0 0 24 24"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      Призы
+    </button>
+    <button data-tab="shop" onclick="setTab('shop')">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+      Магазин
+    </button>
+    <button data-tab="profile" onclick="setTab('profile')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      Профиль
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== КОНФИГ / TELEGRAM =====
+// Базовый URL API: query-параметр ?api=... либо window.PEPSI_API_BASE, иначе localhost:8000
+const API_BASE = (new URLSearchParams(location.search).get('api')
+                  || window.PEPSI_API_BASE || 'http://localhost:8000/api').replace(/\/$/, '');
+const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+
+// Дата розыгрыша по умолчанию (если бэкенд не отдал активный розыгрыш)
+const RAFFLE_DATE = '2026-06-06T18:00:00';
+const RU_DATE = { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' };
+
+// Стабильный dev-id для работы в браузере вне Telegram
+function devId(){
+  let id = localStorage.getItem('pepsi_dev_id');
+  if(!id){ id = String(Math.floor(100000+Math.random()*900000)); localStorage.setItem('pepsi_dev_id', id); }
+  return id;
+}
+function tgUser(){ return tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null; }
+function myId(){ const u = tgUser(); return u ? u.id : devId(); }
+function startRef(){
+  const sp = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
+  if(sp && sp.indexOf('ref_')===0){ const v = parseInt(sp.slice(4),10); return isNaN(v)?null:v; }
+  return null;
+}
+
+// ===== КЛИЕНТ API =====
+async function api(path, opts){
+  opts = opts || {};
+  const method = opts.method || 'GET';
+  const headers = { 'Content-Type':'application/json' };
+  if(tg && tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;  // подпись Telegram
+  let url = API_BASE + path;
+  let bodyStr;
+  if(method === 'GET'){
+    url += (path.indexOf('?')>=0?'&':'?') + 'telegram_id=' + encodeURIComponent(myId());
+  } else {
+    const payload = Object.assign({}, opts.body || {});
+    payload.telegram_id = myId();  // dev-фолбэк, в проде бэкенд берёт id из initData
+    bodyStr = JSON.stringify(payload);
+  }
+  let res;
+  try { res = await fetch(url, { method, headers, body: bodyStr }); }
+  catch(e){ throw new Error('Нет связи с сервером'); }
+  let data = null; try { data = await res.json(); } catch(e) {}
+  if(!res.ok){ throw new Error(data && data.detail ? data.detail : 'Ошибка сервера'); }
+  return data;
+}
+
+// ===== СОСТОЯНИЕ =====
+let me = null;            // профиль с сервера
+let products = [];
+let surveyQuestions = [];
+let prizeTab = 'all';
+let raffleTarget = new Date(RAFFLE_DATE).getTime();
+
+// ===== МОДАЛКИ / ОНБОРДИНГ =====
+function showModal(id){ document.getElementById(id).classList.add('active'); }
+function hideModal(id){ document.getElementById(id).classList.remove('active'); }
+
+async function checkOnboarding(){
+  try {
+    const st = await api('/accounts/onboarding/');
+    if(st.next_step === 'register') showModal('ob1');
+    else if(st.next_step === 'policy') showModal('ob2');
+    else if(st.next_step === 'birth_year') showModal('ob3');
+    else await refresh();
+  } catch(e){ toast(e.message); }
+}
+async function obStep1(){
+  const n = document.getElementById('ob-name').value.trim();
+  const p = document.getElementById('ob-phone').value.trim();
+  if(!n || !p){ toast('Заполните имя и телефон'); return; }
+  try {
+    await api('/accounts/register/', { method:'POST', body:{ name:n, phone:p, ref:startRef() } });
+    hideModal('ob1'); checkOnboarding();
+  } catch(e){ toast(e.message); }
+}
+async function obStep2(){
+  try { await api('/accounts/policy/', { method:'POST', body:{ accepted:true } });
+    hideModal('ob2'); checkOnboarding();
+  } catch(e){ toast(e.message); }
+}
+async function obStep3(){
+  const y = parseInt(document.getElementById('ob-year').value, 10);
+  const cur = new Date().getFullYear();
+  if(!y || y < 1900 || y > cur){ toast('Введите корректный год'); return; }
+  try {
+    await api('/accounts/birth-year/', { method:'POST', body:{ birth_year:y } });
+    hideModal('ob3'); refresh();
+  } catch(e){ toast(e.message); }   // 403 'Участие с 8 лет' покажется тостом
+}
+
+// ===== ВКЛАДКИ =====
+function setTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  document.querySelectorAll('.tabbar button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===name);
+  });
+  window.scrollTo(0,0);
+}
+function goBack(){
+  const cur = document.querySelector('.screen.active');
+  if(cur && cur.id !== 'home') setTab('home');
+}
+function watchRecordings(){ toast('Записи розыгрышей появятся скоро'); }
+
+// ===== ПРИЗЫ =====
+function prizeCard(emoji, title, body){
+  return '<div class="prize" onclick="this.classList.toggle(\'open\')">'+
+    '<div class="prize-h"><div class="prize-img">'+emoji+'</div><b>'+title+'</b><div class="arr">▾</div></div>'+
+    '<div class="prize-body">'+(body||'')+'</div></div>';
+}
+function emptyBlock(text){ return '<div class="empty"><div class="ic">i</div><b>'+text+'</b></div>'; }
+function setPill(el, key){
+  el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  prizeTab = key;
+  renderPrizes();
+}
+async function renderPrizes(){
+  const wrap = document.getElementById('prizesList');
+  try {
+    if(prizeTab === 'won'){
+      const list = await api('/prizes/my/?tab=won');
+      wrap.innerHTML = list.length
+        ? list.map(up=>prizeCard('🏆', up.prize.title, up.prize.description)).join('')
+        : emptyBlock('У вас пока нет выигранных призов');
+    } else if(prizeTab === 'buys'){
+      const list = await api('/prizes/my/?tab=purchased');
+      wrap.innerHTML = list.length
+        ? list.map(pu=>prizeCard('🛍️', pu.product.name, 'Куплено за '+pu.price_paid+' ₽ · Статус: '+pu.status_display)).join('')
+        : emptyBlock('У вас пока нет покупок');
+    } else {
+      const list = await api('/prizes/');
+      wrap.innerHTML = list.length
+        ? list.map(p=>prizeCard('🎁', p.title, p.description)).join('')
+        : emptyBlock('Призы скоро появятся');
+    }
+  } catch(e){ wrap.innerHTML = emptyBlock(e.message); }
+}
+
+// ===== КОДЫ =====
+async function submitCode(){
+  const inp = document.getElementById('codeInput');
+  const code = inp.value.trim().toUpperCase();
+  if(!code){ toast('Введите код'); return; }
+  try {
+    const r = await api('/codes/submit/', { method:'POST', body:{ code } });
+    const st = r.entry.status;
+    toast(st==='accepted' ? ('Код принят! +'+r.entry.reward+' ₽')
+        : st==='used' ? 'Этот код уже использован'
+        : 'Неверный код');
+    inp.value = '';
+    await refresh();
+  } catch(e){ toast(e.message); }
+}
+async function loadCodes(){
+  const data = await api('/codes/history/');
+  document.getElementById('c-count').textContent = data.codes_sent;
+  document.getElementById('c-rub').textContent = data.total_rubles + ' ₽';
+  const list = document.getElementById('codeList');
+  if(!data.entries.length){
+    list.innerHTML = '<div class="empty"><div class="ic">i</div><b>Нет кодов</b><div class="muted" style="margin-top:6px">У вас пока нет отправленных кодов.</div></div>';
+    return;
+  }
+  list.innerHTML = data.entries.map(e=>{
+    const badge = e.status==='accepted' ? '<span class="badge ok">Принят +'+e.reward+'₽</span>'
+                : e.status==='used' ? '<span class="badge used">Уже использован</span>'
+                : '<span class="badge bad">Неверный</span>';
+    return '<div class="code-item"><div><b>'+e.code_text+'</b><div class="muted" style="font-size:11px">'+
+      new Date(e.created_at).toLocaleString('ru-RU')+'</div></div>'+badge+'</div>';
+  }).join('');
+}
+
+// ===== ОПРОС =====
+async function openSurvey(){
+  if(me && me.survey_completed){ toast('Вы уже прошли опрос'); return; }
+  try {
+    surveyQuestions = await api('/home/survey/');
+    const form = document.getElementById('surveyForm');
+    form.innerHTML = surveyQuestions.map((q,qi)=>(
+      '<p style="margin:10px 0 6px"><b>'+(qi+1)+'. '+q.text+'</b></p>'+
+      q.options.map(o=>'<label class="check"><input type="radio" name="q'+q.id+'" value="'+o.id+'"> '+o.text+'</label>').join('')
+    )).join('');
+    showModal('surveyModal');
+  } catch(e){ toast(e.message); }
+}
+async function finishSurvey(){
+  const answers = [];
+  for(const q of surveyQuestions){
+    const sel = document.querySelector('input[name="q'+q.id+'"]:checked');
+    if(!sel){ toast('Ответьте на все вопросы'); return; }
+    answers.push({ question:q.id, option:parseInt(sel.value,10) });
+  }
+  try {
+    await api('/home/survey/submit/', { method:'POST', body:{ answers } });
+    hideModal('surveyModal'); toast('Спасибо! +250 ₽'); await refresh();
+  } catch(e){ toast(e.message); }
+}
+
+// ===== МАГАЗИН =====
+async function loadProducts(){
+  products = await api('/shop/products/');
+  document.getElementById('productList').innerHTML = products.map(p=>
+    '<div class="product"><div class="product-img">🥤</div><div class="info"><b>'+p.name+
+    '</b><span>'+p.price+' ₽</span></div><button class="buy" onclick="buy('+p.id+')">Купить</button></div>'
+  ).join('');
+}
+// сопоставление статуса заказа с CSS-классом бейджа
+const ORDER_BADGE = { assembling:'prep', shipping:'ship', arrived:'arrived', handed:'done', cancelled:'cancel' };
+async function loadOrders(){
+  const orders = await api('/shop/my/');
+  // счётчик на кнопке-корзине (активные заказы — ещё не выданные и не отменённые)
+  const active = orders.filter(o=>o.status!=='handed' && o.status!=='cancelled').length;
+  const badge = document.getElementById('cart-count');
+  badge.textContent = active;
+  badge.style.display = active ? 'flex' : 'none';
+  const list = document.getElementById('orderList');
+  if(!orders.length){
+    list.innerHTML = emptyBlock('У вас пока нет заказов');
+    return;
+  }
+  list.innerHTML = orders.map(o=>{
+    const cls = ORDER_BADGE[o.status] || 'proc';
+    return '<div class="order-item"><div><b>'+o.product.name+'</b>'+
+      '<div class="muted" style="font-size:11px">'+o.price_paid+' ₽ · '+
+      new Date(o.created_at).toLocaleString('ru-RU')+'</div></div>'+
+      '<span class="badge '+cls+'">'+o.status_display+'</span></div>';
+  }).join('');
+}
+async function buy(id){
+  try {
+    await api('/shop/buy/', { method:'POST', body:{ product_id:id } });
+    const p = products.find(x=>x.id===id);
+    toast('Покупка совершена' + (p ? ': '+p.name : ''));
+    await refresh();
+  } catch(e){ toast(e.message); }
+}
+
+// ===== РЕФЕРАЛ =====
+function inviteLink(){ return 'https://t.me/uzpepsibot?start=ref_' + myId(); }
+async function copyLink(url){
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); return;
+    }
+  } catch(e){ /* clipboard недоступен (не secure context / нет прав) */ }
+  // финальный фолбэк: всегда показываем ссылку, чтобы пользователь мог скопировать вручную
+  window.prompt('Скопируйте ссылку и отправьте другу:', url);
+}
+async function invite(){
+  const url = inviteLink();
+  const text = 'Присоединяйся к Pepsi Dunyosi!';
+  // 1) Внутри Telegram — открываем нативное окно «Поделиться»
+  if(tg && typeof tg.openTelegramLink === 'function'){
+    tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) +
+                        '&text=' + encodeURIComponent(text));
+    return;
+  }
+  // 2) В обычном браузере — системный шеринг, при отмене/ошибке падаем в копирование
+  if(navigator.share){
+    try { await navigator.share({ title:'Pepsi Dunyosi', text, url }); return; }
+    catch(e){ if(e && e.name === 'AbortError') return; }  // пользователь сам закрыл — это не ошибка
+  }
+  // 3) Копирование в буфер / ручной фолбэк
+  await copyLink(url);
+}
+
+// ===== РЕНДЕР ПРОФИЛЯ/СТАТИСТИКИ =====
+function renderProfile(){
+  if(!me) return;
+  document.getElementById('s-codes').textContent = me.codes_count;
+  document.getElementById('s-prizes').textContent = me.prizes_count;
+  document.getElementById('s-rub').textContent = me.balance + ' ₽';
+  document.getElementById('shop-bal').textContent = me.balance;
+  document.getElementById('pf-name').textContent = me.name || 'Пользователь';
+  document.getElementById('pf-ava').textContent = (me.name || 'U').charAt(0).toUpperCase();
+  document.getElementById('pf-id').textContent = 'ID: ' + me.telegram_id;
+  document.getElementById('pf-since').textContent = 'С нами с ' + new Date(me.created_at).toLocaleDateString('ru-RU');
+  document.getElementById('pf-codes').textContent = me.codes_count;
+  document.getElementById('pf-prizes').textContent = me.prizes_count;
+  document.getElementById('pf-rub').textContent = me.balance + ' ₽';
+}
+async function loadPrizeStats(){
+  const s = await api('/prizes/stats/');
+  document.getElementById('p-received').textContent = s.received;
+  document.getElementById('p-pending').textContent = s.pending;
+  document.getElementById('p-buys').textContent = s.purchases;
+}
+
+// Полное обновление данных после действий пользователя
+async function refresh(){
+  try {
+    me = await api('/accounts/profile/');
+    renderProfile();
+    await Promise.all([ loadCodes(), loadPrizeStats(), renderPrizes(), loadProducts(), loadOrders() ]);
+  } catch(e){ /* пользователь может быть ещё не зарегистрирован — игнорируем */ }
+}
+
+// ===== БАННЕРЫ (заголовки слайдов с бэкенда, если есть) =====
+async function loadBanners(){
+  try {
+    const banners = await api('/home/banners/');
+    if(banners.length){
+      const slides = document.querySelectorAll('#slides .slide');
+      banners.slice(0, slides.length).forEach((b,i)=>{ if(b.title) slides[i].textContent = b.title; });
+    }
+  } catch(e){ /* оставляем дефолтные слайды */ }
+}
+
+// ===== РОЗЫГРЫШ (таймер) =====
+async function loadRaffle(){
+  try {
+    const r = await api('/home/raffle/');
+    raffleTarget = new Date(r.draw_at).getTime();
+    document.getElementById('raffle-caption').textContent =
+      'Розыгрыш состоится ' + new Date(r.draw_at).toLocaleString('ru-RU', RU_DATE);
+  } catch(e){
+    document.getElementById('raffle-caption').textContent =
+      'Розыгрыш состоится ' + new Date(RAFFLE_DATE).toLocaleString('ru-RU', RU_DATE);
+  }
+}
+
+// ===== TOAST =====
+let toastT;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+// ===== КАРУСЕЛЬ =====
+let slideIdx = 0;
+setInterval(()=>{
+  slideIdx = (slideIdx+1) % 3;
+  document.getElementById('slides').style.transform = 'translateX(-'+(slideIdx*100)+'%)';
+  document.querySelectorAll('#dots span').forEach((d,i)=>d.classList.toggle('active', i===slideIdx));
+}, 3500);
+
+// ===== ОБРАТНЫЙ ОТСЧЁТ =====
+const pad = n => String(n).padStart(2,'0');
+let cdTimer;
+function tick(){
+  const diff = raffleTarget - Date.now();
+  if(diff <= 0){
+    ['cd-d','cd-h','cd-m','cd-s'].forEach(id=>document.getElementById(id).textContent='00');
+    document.getElementById('raffle-caption').textContent = 'Розыгрыш состоялся';
+    return;
+  }
+  document.getElementById('cd-d').textContent = pad(Math.floor(diff/86400000));
+  document.getElementById('cd-h').textContent = pad(Math.floor(diff/3600000)%24);
+  document.getElementById('cd-m').textContent = pad(Math.floor(diff/60000)%60);
+  document.getElementById('cd-s').textContent = pad(Math.floor(diff/1000)%60);
+}
+cdTimer = setInterval(tick, 1000); tick();
+
+// ===== СТАРТ =====
+document.getElementById('ob-year').max = new Date().getFullYear();
+loadBanners();
+loadRaffle();
+checkOnboarding();
+</script>
+</body>
+</html>
