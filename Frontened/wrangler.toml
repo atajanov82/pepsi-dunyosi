@@ -1,0 +1,7 @@
+# Cloudflare Workers — раздача статики из ./public (без серверного кода).
+# `npx wrangler deploy` поднимет Worker, отдающий файлы public/ (в т.ч. pepsi.html).
+name = "pepsi-dunyosi"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./public"
