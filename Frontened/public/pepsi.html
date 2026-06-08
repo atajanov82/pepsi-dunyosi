@@ -421,7 +421,7 @@
 
     <button class="btn ghost" onclick="watchRecordings()">Записи розыгрышей</button>
 
-    <div class="footer-credit">@uzpepsibot</div>
+    <div class="footer-credit">@pepsi_project_bot</div>
   </section>
 
   <!-- CODES -->
@@ -433,7 +433,7 @@
       <div class="stat"><div class="v" id="c-rub">0 ₽</div><div class="l">Всего рублей</div></div>
     </div>
     <div id="codeList"></div>
-    <div class="footer-credit">@uzpepsibot</div>
+    <div class="footer-credit">@pepsi_project_bot</div>
   </section>
 
   <!-- PRIZES -->
@@ -449,7 +449,7 @@
       <button onclick="setPill(this,'buys')">Покупки</button>
     </div>
     <div id="prizesList"></div>
-    <div class="footer-credit">@uzpepsibot</div>
+    <div class="footer-credit">@pepsi_project_bot</div>
   </section>
 
   <!-- SHOP -->
@@ -459,7 +459,7 @@
       <div class="v"><span id="shop-bal">0</span> ₽</div>
     </div>
     <div id="productList"></div>
-    <div class="footer-credit">@uzpepsibot</div>
+    <div class="footer-credit">@pepsi_project_bot</div>
   </section>
 
   <!-- CART / ЗАКАЗЫ -->
@@ -467,7 +467,7 @@
     <h2 style="font-size:20px;font-weight:900">Корзина</h2>
     <p class="muted" style="margin-bottom:14px">Ваши заказы и их статусы доставки</p>
     <div id="orderList"></div>
-    <div class="footer-credit">@uzpepsibot</div>
+    <div class="footer-credit">@pepsi_project_bot</div>
   </section>
 
   <!-- PROFILE -->
@@ -494,7 +494,7 @@
       <div class="stat"><div class="v" id="pf-prizes">0</div><div class="l">Призы</div></div>
       <div class="stat"><div class="v" id="pf-rub">0 ₽</div><div class="l">Рубли</div></div>
     </div>
-    <div class="footer-credit">@uzpepsibot</div>
+    <div class="footer-credit">@pepsi_project_bot</div>
   </section>
 
   <nav class="tabbar">
@@ -528,6 +528,8 @@
 // Базовый URL API: query-параметр ?api=... либо window.PEPSI_API_BASE, иначе localhost:8000
 const API_BASE = (new URLSearchParams(location.search).get('api')
                   || window.PEPSI_API_BASE || 'http://localhost:8000/api').replace(/\/$/, '');
+// username бота (без @). Можно переопределить в config.js через window.PEPSI_BOT
+const BOT_USERNAME = (window.PEPSI_BOT || 'pepsi_project_bot').replace(/^@/, '');
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 
@@ -765,7 +767,7 @@ async function buy(id){
 }
 
 // ===== РЕФЕРАЛ =====
-function inviteLink(){ return 'https://t.me/uzpepsibot?start=ref_' + myId(); }
+function inviteLink(){ return 'https://t.me/' + BOT_USERNAME + '?start=ref_' + myId(); }
 async function copyLink(url){
   try {
     if(navigator.clipboard && navigator.clipboard.writeText){
