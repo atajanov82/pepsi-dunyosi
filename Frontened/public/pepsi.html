@@ -270,6 +270,9 @@
   .footer-credit{text-align:center;font-size:12px;opacity:.6;padding:10px;margin-top:6px}
 
   .invite-card{background:linear-gradient(135deg,#1e63ff,#004B93);border-radius:16px;padding:16px;margin-bottom:14px}
+  .invite-stat{font-size:13px;margin-top:10px;opacity:.95}
+  .invite-link{margin-top:8px;background:rgba(0,0,0,.22);border:1px dashed rgba(255,255,255,.35);
+    border-radius:10px;padding:10px 12px;font-size:12px;word-break:break-all;cursor:pointer}
   .section-title{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin:18px 0 10px}
 
   .logo-pill{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#004B93;
@@ -485,7 +488,12 @@
       <b style="font-size:15px">Пригласите друзей</b>
       <div style="font-size:13px;opacity:.9;margin-top:4px">Получайте рубли за каждого приглашённого друга</div>
       <div class="reward-chip">🎁 Получите 10 ₽ за каждого друга</div>
-      <button class="btn" style="background:#fff;color:#004B93" onclick="invite()">Пригласить друзей</button>
+      <div class="invite-stat">Приглашено друзей: <b id="pf-referrals">0</b></div>
+      <div class="invite-link" id="pf-reflink" onclick="copyInvite()" title="Нажмите, чтобы скопировать">…</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn" style="background:#fff;color:#004B93" onclick="invite()">Поделиться</button>
+        <button class="btn" style="background:rgba(255,255,255,.18);flex:0 0 auto;width:auto;padding:14px 16px" onclick="copyInvite()">Копировать</button>
+      </div>
     </div>
 
     <div class="section-title">Моя статистика</div>
@@ -767,7 +775,9 @@ async function buy(id){
 }
 
 // ===== РЕФЕРАЛ =====
-function inviteLink(){ return 'https://t.me/' + BOT_USERNAME + '?start=ref_' + myId(); }
+// startapp открывает сам Mini-App и передаёт реф-код в tg.initDataUnsafe.start_param
+function inviteLink(){ return 'https://t.me/' + BOT_USERNAME + '?startapp=ref_' + myId(); }
+function copyInvite(){ copyLink(inviteLink()); }
 async function copyLink(url){
   try {
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -809,6 +819,9 @@ function renderProfile(){
   document.getElementById('pf-codes').textContent = me.codes_count;
   document.getElementById('pf-prizes').textContent = me.prizes_count;
   document.getElementById('pf-rub').textContent = me.balance + ' ₽';
+  // реферальная карточка: количество приглашённых и личная ссылка
+  document.getElementById('pf-referrals').textContent = me.referrals_count;
+  document.getElementById('pf-reflink').textContent = inviteLink();
 }
 async function loadPrizeStats(){
   const s = await api('/prizes/stats/');
