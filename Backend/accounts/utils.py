@@ -12,14 +12,21 @@ from .telegram import parse_init_data
 
 def verified_telegram_id(request):
     """Возвращает telegram_id из проверенного initData, либо None.
-    Бросает NotAuthenticated, если initData передан, но подпись неверна."""
+
+    - Токен задан и подпись верна -> возвращаем id.
+    - Токен не задан ИЛИ подпись неверна:
+        * TELEGRAM_ALLOW_INSECURE=True  -> None (определит dev-фолбэк по telegram_id);
+        * TELEGRAM_ALLOW_INSECURE=False -> NotAuthenticated (строгий прод)."""
     init_data = (request.headers.get('X-Telegram-Init-Data')
                  or (request.data.get('init_data') if hasattr(request, 'data') else None))
     if not init_data:
         return None
-    tg_user = parse_init_data(init_data, settings.TELEGRAM_BOT_TOKEN)
-    if tg_user and tg_user.get('id'):
-        return tg_user['id']
+    if settings.TELEGRAM_BOT_TOKEN:
+        tg_user = parse_init_data(init_data, settings.TELEGRAM_BOT_TOKEN)
+        if tg_user and tg_user.get('id'):
+            return tg_user['id']
+    if settings.TELEGRAM_ALLOW_INSECURE:
+        return None
     raise NotAuthenticated('Неверная подпись Telegram initData')
 
 

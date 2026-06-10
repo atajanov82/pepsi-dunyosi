@@ -101,6 +101,9 @@ if not DEBUG:
 CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
 # В разработке разрешаем все источники, чтобы не мучиться с портами Vite/preview
 CORS_ALLOW_ALL_ORIGINS = DEBUG and not CORS_ALLOWED_ORIGINS
+# Разрешаем кастомный заголовок Telegram initData (иначе preflight внутри Telegram падает)
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = (*default_headers, 'x-telegram-init-data')
 
 # --- Telegram Mini-App ---
 TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN')
