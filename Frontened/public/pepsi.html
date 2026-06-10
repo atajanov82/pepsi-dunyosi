@@ -559,9 +559,19 @@ function tgFullName(){
   return [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || (u.username || '');
 }
 function startRef(){
-  const sp = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
-  if(sp && sp.indexOf('ref_')===0){ const v = parseInt(sp.slice(4),10); return isNaN(v)?null:v; }
-  return null;
+  // источники реф-кода по приоритету: Telegram start_param -> URL ?ref=/?startapp= -> сохранённый
+  let raw = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
+  if(!raw){
+    const q = new URLSearchParams(location.search);
+    raw = q.get('ref') || q.get('startapp') || '';
+  }
+  if(!raw) raw = localStorage.getItem('pepsi_ref') || '';
+  const m = String(raw).match(/(\d+)/);   // вытащить число из 'ref_123' или '123'
+  if(!m) return null;
+  const id = parseInt(m[1], 10);
+  if(isNaN(id) || id === Number(myId())) return null;   // не реферим сами себя
+  localStorage.setItem('pepsi_ref', String(id));        // сохранить до момента регистрации
+  return id;
 }
 
 // ===== КЛИЕНТ API =====
@@ -606,6 +616,7 @@ async function checkOnboarding(){
       if(tgUser()){
         await api('/accounts/register/', { method:'POST',
           body:{ name: tgFullName() || 'Пользователь', ref: startRef() } });
+        localStorage.removeItem('pepsi_ref');   // реф использован
         hideModal('ob1');
         showModal('ob2');   // дальше — согласие
         return;
@@ -623,6 +634,7 @@ async function obStep1(){
   if(!n || !p){ toast('Заполните имя и телефон'); return; }
   try {
     await api('/accounts/register/', { method:'POST', body:{ name:n, phone:p, ref:startRef() } });
+    localStorage.removeItem('pepsi_ref');   // реф использован
     hideModal('ob1'); checkOnboarding();
   } catch(e){ toast(e.message); }
 }
