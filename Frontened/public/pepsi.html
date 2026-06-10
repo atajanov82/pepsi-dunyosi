@@ -497,10 +497,11 @@
     </div>
 
     <div class="section-title">Моя статистика</div>
-    <div class="stats">
+    <div class="stats" style="grid-template-columns:repeat(2,1fr)">
       <div class="stat"><div class="v" id="pf-codes">0</div><div class="l">Коды</div></div>
       <div class="stat"><div class="v" id="pf-prizes">0</div><div class="l">Призы</div></div>
       <div class="stat"><div class="v" id="pf-rub">0 ₽</div><div class="l">Рубли</div></div>
+      <div class="stat"><div class="v" id="pf-friends">0</div><div class="l">Друзья</div></div>
     </div>
     <div class="footer-credit">@pepsi_project_bot</div>
   </section>
@@ -553,6 +554,10 @@ function devId(){
 }
 function tgUser(){ return tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null; }
 function myId(){ const u = tgUser(); return u ? u.id : devId(); }
+function tgFullName(){
+  const u = tgUser(); if(!u) return '';
+  return [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || (u.username || '');
+}
 function startRef(){
   const sp = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
   if(sp && sp.indexOf('ref_')===0){ const v = parseInt(sp.slice(4),10); return isNaN(v)?null:v; }
@@ -596,7 +601,17 @@ function hideModal(id){ document.getElementById(id).classList.remove('active'); 
 async function checkOnboarding(){
   try {
     const st = await api('/accounts/onboarding/');
-    if(st.next_step === 'register') showModal('ob1');
+    if(st.next_step === 'register'){
+      // Внутри Telegram регистрируем автоматически по данным профиля Telegram
+      if(tgUser()){
+        await api('/accounts/register/', { method:'POST',
+          body:{ name: tgFullName() || 'Пользователь', ref: startRef() } });
+        hideModal('ob1');
+        showModal('ob2');   // дальше — согласие
+        return;
+      }
+      showModal('ob1');     // браузер вне Telegram — ручная форма
+    }
     else if(st.next_step === 'policy') showModal('ob2');
     else if(st.next_step === 'birth_year') showModal('ob3');
     else await refresh();
@@ -819,8 +834,9 @@ function renderProfile(){
   document.getElementById('pf-codes').textContent = me.codes_count;
   document.getElementById('pf-prizes').textContent = me.prizes_count;
   document.getElementById('pf-rub').textContent = me.balance + ' ₽';
-  // реферальная карточка: количество приглашённых и личная ссылка
+  // реферальная карточка + плитка «Друзья»: количество приглашённых и личная ссылка
   document.getElementById('pf-referrals').textContent = me.referrals_count;
+  document.getElementById('pf-friends').textContent = me.referrals_count;
   document.getElementById('pf-reflink').textContent = inviteLink();
 }
 async function loadPrizeStats(){
