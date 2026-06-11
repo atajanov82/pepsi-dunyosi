@@ -242,6 +242,10 @@
   .product .info b{display:block;font-size:14px}
   .product .info span{font-size:13px;opacity:.8;font-weight:500}
   .product .buy{background:#1e63ff;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer;font-size:13px}
+  .product .buy:disabled{background:#475569;cursor:not-allowed;opacity:.75}
+  .product .info .stock-left{display:block;margin-top:3px;font-size:12px;font-weight:700;opacity:1;color:#4ade80}
+  .product .info .stock-left.low{color:#fbbf24}
+  .product .info .stock-left.out{color:#f87171}
 
   /* Profile */
   .profile-card{display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.10);
@@ -768,10 +772,18 @@ async function finishSurvey(){
 // ===== МАГАЗИН =====
 async function loadProducts(){
   products = await api('/shop/products/');
-  document.getElementById('productList').innerHTML = products.map(p=>
-    '<div class="product"><div class="product-img">🥤</div><div class="info"><b>'+p.name+
-    '</b><span>'+p.price+' ₽</span></div><button class="buy" onclick="buy('+p.id+')">Купить</button></div>'
-  ).join('');
+  document.getElementById('productList').innerHTML = products.map(p=>{
+    const out = p.stock <= 0;
+    // строка остатка из базы: «Нет в наличии» / «Осталось N шт»
+    const left = out
+      ? '<span class="stock-left out">Нет в наличии</span>'
+      : '<span class="stock-left'+(p.stock<=5?' low':'')+'">Осталось: '+p.stock+' шт</span>';
+    const btn = out
+      ? '<button class="buy" disabled>Нет в наличии</button>'
+      : '<button class="buy" onclick="buy('+p.id+')">Купить</button>';
+    return '<div class="product"><div class="product-img">🥤</div><div class="info"><b>'+p.name+
+      '</b><span>'+p.price+' ₽</span>'+left+'</div>'+btn+'</div>';
+  }).join('');
 }
 // сопоставление статуса заказа с CSS-классом бейджа
 const ORDER_BADGE = { assembling:'prep', shipping:'ship', arrived:'arrived', handed:'done', cancelled:'cancel' };
