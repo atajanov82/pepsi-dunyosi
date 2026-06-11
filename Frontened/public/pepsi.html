@@ -576,12 +576,22 @@ function tgFullName(){
   return [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || (u.username || '');
 }
 function startRef(){
-  // источники реф-кода по приоритету: Telegram start_param -> URL ?ref=/?startapp= -> сохранённый
+  // Реф-код ищем во всех местах, куда Telegram/браузер могут его положить:
   let raw = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
-  if(!raw){
-    const q = new URLSearchParams(location.search);
-    raw = q.get('ref') || q.get('startapp') || '';
+  // 1) сырой initData (иногда start_param только там)
+  if(!raw && tg && tg.initData){
+    try { raw = new URLSearchParams(tg.initData).get('start_param') || ''; } catch(e){}
   }
+  // 2) tgWebAppStartParam в query и в hash — Telegram добавляет его в URL Mini-App
+  if(!raw){
+    try {
+      const q = new URLSearchParams(location.search);
+      const h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+      raw = q.get('tgWebAppStartParam') || h.get('tgWebAppStartParam')
+          || q.get('startapp') || q.get('ref') || '';
+    } catch(e){}
+  }
+  // 3) сохранённый ранее реф
   if(!raw) raw = localStorage.getItem('pepsi_ref') || '';
   const m = String(raw).match(/(\d+)/);   // вытащить число из 'ref_123' или '123'
   if(!m) return null;
@@ -989,6 +999,8 @@ setInterval(() => {
 
 // ===== СТАРТ =====
 document.getElementById('ob-year').max = new Date().getFullYear();
+// если пришли по приглашению — подтверждаем (и код сохранится до регистрации)
+if(startRef()) setTimeout(()=>toast('🎁 Вы перешли по приглашению друга'), 800);
 loadBanners();
 loadRaffle();
 checkOnboarding();
