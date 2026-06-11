@@ -666,6 +666,7 @@ function setTab(name){
     b.classList.toggle('active', b.dataset.tab===name);
   });
   window.scrollTo(0,0);
+  if(name === 'shop' && me) loadProducts().catch(()=>{});   // свежие остатки при заходе
 }
 function goBack(){
   const cur = document.querySelector('.screen.active');
@@ -939,6 +940,13 @@ function tick(){
   document.getElementById('cd-s').textContent = pad(Math.floor(diff/1000)%60);
 }
 cdTimer = setInterval(tick, 1000); tick();
+
+// ===== ОСТАТКИ В РЕАЛЬНОМ ВРЕМЕНИ =====
+// пока открыт экран «Магазин» — обновляем остатки из базы каждые 15 секунд
+setInterval(() => {
+  const shop = document.getElementById('shop');
+  if(me && shop && shop.classList.contains('active')) loadProducts().catch(()=>{});
+}, 15000);
 
 // ===== СТАРТ =====
 document.getElementById('ob-year').max = new Date().getFullYear();
