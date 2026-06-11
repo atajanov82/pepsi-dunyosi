@@ -11,6 +11,9 @@ class Prize(models.Model):
     prize_type = models.CharField('Тип', max_length=10, choices=TYPE, default='merch')
     valid_until = models.DateField('Действует до', null=True, blank=True)
     is_main = models.BooleanField('Главный приз', default=False)
+    win_chance = models.PositiveIntegerField(
+        'Шанс выигрыша, %', default=0,
+        help_text='Вероятность, что код выиграет именно этот приз (в розыгрыше). 0 = не разыгрывается.')
 
     class Meta:
         verbose_name = 'Приз'; verbose_name_plural = 'Призы'

@@ -1,5 +1,5 @@
 from django.contrib import admin, messages
-from .models import Banner, Raffle, SurveyQuestion, SurveyOption, SurveyAnswer
+from .models import Banner, Raffle, RaffleWin, SurveyQuestion, SurveyOption, SurveyAnswer
 from .raffledraw import run_draw
 
 class OptionInline(admin.TabularInline):
@@ -17,25 +17,30 @@ class SurveyAnswerAdmin(admin.ModelAdmin):
 
 @admin.register(Raffle)
 class RaffleAdmin(admin.ModelAdmin):
-    list_display = ('title', 'draw_at', 'is_done', 'winning_code', 'winner', 'drawn_at')
+    list_display = ('title', 'draw_at', 'is_done', 'winners_count', 'drawn_at')
     list_filter = ('is_active',)
     actions = ['do_draw']
 
+    @admin.display(description='Победителей')
+    def winners_count(self, obj):
+        return obj.wins.count()
+
     @admin.action(description='🎰 Провести розыгрыш сейчас (рулетка)')
     def do_draw(self, request, queryset):
-        done = 0
         for raffle in queryset:
-            entry = run_draw(raffle)
-            if entry:
-                done += 1
-                self.message_user(
-                    request, f'{raffle.title}: выиграл код {entry.code_text} ({entry.user})',
-                    messages.SUCCESS)
-            else:
-                self.message_user(
-                    request, f'{raffle.title}: пропущен (уже проведён или нет билетов)',
-                    messages.WARNING)
-        if done:
-            self.message_user(request, f'Проведено розыгрышей: {done}', messages.SUCCESS)
+            if raffle.is_done:
+                self.message_user(request, f'{raffle.title}: уже проведён', messages.WARNING)
+                continue
+            wins = run_draw(raffle)
+            self.message_user(
+                request, f'{raffle.title}: победителей — {len(wins)}', messages.SUCCESS)
+
+
+@admin.register(RaffleWin)
+class RaffleWinAdmin(admin.ModelAdmin):
+    list_display = ('raffle', 'code_text', 'prize', 'user', 'created_at')
+    list_filter = ('raffle', 'prize')
+    search_fields = ('code_text', 'user__name')
+    list_select_related = ('raffle', 'prize', 'user')
 
 admin.site.register(Banner)

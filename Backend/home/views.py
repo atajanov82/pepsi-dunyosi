@@ -21,7 +21,7 @@ class ActiveRaffleView(APIView):
     """GET /api/home/raffle/ — ближайший непроведённый розыгрыш (для таймера)."""
     def get(self, request):
         from django.utils import timezone
-        pending = Raffle.objects.filter(is_active=True, winner__isnull=True).order_by('draw_at')
+        pending = Raffle.objects.filter(is_active=True, drawn_at__isnull=True).order_by('draw_at')
         raffle = (pending.filter(draw_at__gte=timezone.now()).first()
                   or pending.first()
                   or Raffle.objects.order_by('-draw_at').first())
@@ -34,7 +34,8 @@ class ActiveRaffleView(APIView):
 class RaffleListView(APIView):
     """GET /api/home/raffles/ — все розыгрыши с результатами (Записи розыгрышей)."""
     def get(self, request):
-        raffles = Raffle.objects.all().order_by('draw_at')
+        raffles = (Raffle.objects.all().order_by('draw_at')
+                   .prefetch_related('wins__prize', 'wins__user'))
         return Response(RaffleSerializer(raffles, many=True).data)
 
 

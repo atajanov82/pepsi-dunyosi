@@ -17,10 +17,11 @@ BANNERS = [
     ('КАЖДЫЙ ДЕНЬ', 'https://placehold.co/600x300/E32934/fff?text=КАЖДЫЙ+ДЕНЬ'),
 ]
 
+#                title, описание, тип, главный?, шанс выигрыша %
 PRIZES = [
-    ('Pepsi Комбо Чемпионов', 'Ваучер на скидку у партнёров сети быстрого питания. Действует 30 дней.', 'combo', False),
-    ('Pepsi Сет Чемпионов', 'Набор из 2 бутылок Pepsi 1.5л и подарочного мерча. Доставка бесплатно.', 'set', False),
-    ('Главный приз — 100 000 000 сум', 'Денежный сертификат главного приза акции. Розыгрыш в прямом эфире.', 'cash', True),
+    ('Pepsi Комбо Чемпионов', 'Ваучер на скидку у партнёров сети быстрого питания. Действует 30 дней.', 'combo', False, 19),
+    ('Pepsi Сет Чемпионов', 'Набор из 2 бутылок Pepsi 1.5л и подарочного мерча. Доставка бесплатно.', 'set', False, 12),
+    ('Главный приз — 100 000 000 сум', 'Денежный сертификат главного приза акции. Розыгрыш в прямом эфире.', 'cash', True, 2),
 ]
 
 PRODUCTS = [
@@ -65,10 +66,14 @@ class Command(BaseCommand):
         for i, (title, url) in enumerate(BANNERS):
             Banner.objects.get_or_create(title=title, defaults={'image_url': url, 'order': i})
 
-        for title, desc, ptype, is_main in PRIZES:
-            Prize.objects.get_or_create(
+        for title, desc, ptype, is_main, chance in PRIZES:
+            prize, _ = Prize.objects.get_or_create(
                 title=title,
                 defaults={'description': desc, 'prize_type': ptype, 'is_main': is_main})
+            # шанс выигрыша задаём авторитетно (в т.ч. для уже существующих призов)
+            if prize.win_chance != chance:
+                prize.win_chance = chance
+                prize.save(update_fields=['win_chance'])
 
         for name, price, stock in PRODUCTS:
             Product.objects.get_or_create(name=name, defaults={'price': price, 'stock': stock})

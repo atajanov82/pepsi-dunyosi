@@ -39,7 +39,23 @@ class Raffle(models.Model):
 
     @property
     def is_done(self):
-        return self.winner_id is not None or bool(self.winning_code)
+        return self.drawn_at is not None
+
+
+class RaffleWin(models.Model):
+    """Один выигрыш в розыгрыше: код -> приз -> пользователь (победителей может быть много)."""
+    raffle = models.ForeignKey(Raffle, related_name='wins', on_delete=models.CASCADE)
+    user = models.ForeignKey('accounts.UserProfile', related_name='raffle_wins',
+                             on_delete=models.CASCADE)
+    prize = models.ForeignKey('prizes.Prize', on_delete=models.CASCADE)
+    code_text = models.CharField('Выигравший код', max_length=40)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Выигрыш розыгрыша'; verbose_name_plural = 'Выигрыши розыгрышей'
+
+    def __str__(self):
+        return f'{self.code_text} -> {self.prize} ({self.user})'
 
 
 class SurveyQuestion(models.Model):

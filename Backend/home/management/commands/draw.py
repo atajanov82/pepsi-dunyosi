@@ -21,15 +21,17 @@ class Command(BaseCommand):
         if id:
             raffles = Raffle.objects.filter(pk=id)
         elif all:
-            raffles = Raffle.objects.filter(winner__isnull=True)
+            raffles = Raffle.objects.filter(drawn_at__isnull=True)
         else:
-            raffles = Raffle.objects.filter(winner__isnull=True, draw_at__lte=timezone.now())
+            raffles = Raffle.objects.filter(drawn_at__isnull=True, draw_at__lte=timezone.now())
         done = 0
         for r in raffles:
-            entry = run_draw(r)
-            if entry:
-                done += 1
-                self.stdout.write(f'{r.title}: выигрыш — {entry.code_text} ({entry.user})')
-            else:
-                self.stdout.write(f'{r.title}: пропущен (уже проведён или нет билетов)')
+            if r.is_done:
+                self.stdout.write(f'{r.title}: уже проведён')
+                continue
+            wins = run_draw(r)
+            done += 1
+            self.stdout.write(f'{r.title}: победителей — {len(wins)}')
+            for w in wins:
+                self.stdout.write(f'    {w.code_text} -> {w.prize.title} ({w.user})')
         self.stdout.write(self.style.SUCCESS(f'Проведено розыгрышей: {done}'))

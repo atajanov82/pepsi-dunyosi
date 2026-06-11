@@ -8,17 +8,24 @@ class BannerSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'image_url']
 
 
+class RaffleWinSerializer(serializers.Serializer):
+    code_text = serializers.CharField()
+    prize_title = serializers.CharField(source='prize.title')
+    winner_name = serializers.CharField(source='user.name')
+
+
 class RaffleSerializer(serializers.ModelSerializer):
     is_done = serializers.BooleanField(read_only=True)
-    winner_name = serializers.SerializerMethodField()
+    wins = RaffleWinSerializer(many=True, read_only=True)
+    winners_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Raffle
         fields = ['id', 'title', 'draw_at', 'recording_url',
-                  'is_done', 'winning_code', 'drawn_at', 'winner_name']
+                  'is_done', 'drawn_at', 'winners_count', 'wins']
 
-    def get_winner_name(self, obj):
-        return obj.winner.name if obj.winner_id else ''
+    def get_winners_count(self, obj):
+        return obj.wins.count()
 
 
 class SurveyOptionSerializer(serializers.ModelSerializer):

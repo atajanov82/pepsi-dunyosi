@@ -8,7 +8,7 @@ class PrizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prize
         fields = ['id', 'title', 'description', 'image_url',
-                  'prize_type', 'type_display', 'valid_until', 'is_main']
+                  'prize_type', 'type_display', 'valid_until', 'is_main', 'win_chance']
 
 
 class UserPrizeSerializer(serializers.ModelSerializer):

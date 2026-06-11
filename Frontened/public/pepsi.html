@@ -693,14 +693,19 @@ async function watchRecordings(){
       const d = new Date(r.draw_at).toLocaleString('ru-RU',
         { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
       const res = r.is_done
-        ? '<span class="badge ok">Код-победитель: '+r.winning_code+'</span>'+
-          (r.winner_name ? ' <span style="color:#475569">· '+r.winner_name+'</span>' : '')
+        ? '<span class="badge ok">Победителей: '+r.winners_count+'</span>'
         : '<span class="badge lose">Состоится '+d+'</span>';
       const rec = r.recording_url
         ? ' · <a href="'+r.recording_url+'" target="_blank" style="color:#1e63ff;font-weight:700">смотреть запись</a>'
         : '';
+      // список выигравших кодов и их призов
+      const winsList = (r.is_done && r.wins && r.wins.length)
+        ? '<div style="margin-top:8px;border-top:1px solid #e2e8f0;padding-top:6px">'+
+          r.wins.map(w=>'<div style="font-size:12px;color:#0b2447">🎟 <b>'+w.code_text+'</b> → '+w.prize_title+'</div>').join('')+
+          '</div>'
+        : '';
       return '<div class="raffle-row"><b>'+r.title+'</b>'+
-             '<div style="font-size:12px;margin-top:5px">'+res+rec+'</div></div>';
+             '<div style="font-size:12px;margin-top:5px">'+res+rec+'</div>'+winsList+'</div>';
     }).join('') : '<div class="muted">Розыгрышей пока нет</div>';
     showModal('rafflesModal');
   } catch(e){ toast(e.message); }
@@ -735,7 +740,8 @@ async function renderPrizes(){
     } else {
       const list = await api('/prizes/');
       wrap.innerHTML = list.length
-        ? list.map(p=>prizeCard('🎁', p.title, p.description)).join('')
+        ? list.map(p=>prizeCard('🎁', p.title,
+            p.description + (p.win_chance ? '<br><b style="color:#1e63ff">Шанс выигрыша: '+p.win_chance+'%</b>' : ''))).join('')
         : emptyBlock('Призы скоро появятся');
     }
   } catch(e){ wrap.innerHTML = emptyBlock(e.message); }

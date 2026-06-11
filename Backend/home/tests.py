@@ -9,29 +9,55 @@ from .raffledraw import run_draw
 
 
 class RaffleDrawTests(APITestCase):
-    def test_draw_picks_registered_code_and_awards_prize(self):
+    def _code(self, user, text, status='accepted'):
+        return CodeEntry.objects.create(user=user, code_text=text, status=status, reward=0)
+
+    def test_win_chance_100_all_codes_win(self):
         u = UserProfile.objects.create(telegram_id=42, name='Амир')
-        CodeEntry.objects.create(user=u, code_text='PEPSI-WIN1', status='accepted', reward=50)
-        CodeEntry.objects.create(user=u, code_text='PEPSI-LOSE1', status='lose', reward=0)
-        Prize.objects.create(title='Главный приз', description='...', is_main=True)
+        for i in range(3):
+            self._code(u, f'C{i}')
+        Prize.objects.create(title='Комбо', description='...', win_chance=100)
         raffle = Raffle.objects.create(
             title='Тест', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
-
-        entry = run_draw(raffle)
+        wins = run_draw(raffle)
         raffle.refresh_from_db()
-        self.assertIsNotNone(entry)
-        self.assertEqual(raffle.winner_id, u.id)
-        self.assertIn(raffle.winning_code, ['PEPSI-WIN1', 'PEPSI-LOSE1'])
+        self.assertEqual(len(wins), 3)               # все 3 кода выиграли (шанс 100%)
         self.assertTrue(raffle.is_done)
+        self.assertEqual(raffle.wins.count(), 3)
         self.assertEqual(UserPrize.objects.filter(user=u, status='won').count(), 1)
-        # повторный розыгрыш не перепроводится
-        self.assertIsNone(run_draw(raffle))
+        self.assertEqual(run_draw(raffle), [])       # повторно не проводится
+
+    def test_zero_chance_no_winners(self):
+        u = UserProfile.objects.create(telegram_id=43, name='X')
+        self._code(u, 'Z1')
+        Prize.objects.create(title='Приз', description='...', win_chance=0)
+        raffle = Raffle.objects.create(
+            title='Т', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
+        self.assertEqual(len(run_draw(raffle)), 0)
+
+    def test_incremental_pool_only_new_codes(self):
+        u = UserProfile.objects.create(telegram_id=44, name='Y')
+        Prize.objects.create(title='Комбо', description='...', win_chance=100)
+        r1 = Raffle.objects.create(title='Р1', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
+        r2 = Raffle.objects.create(title='Р2', draw_at=timezone.make_aware(datetime(2026, 6, 22, 18, 0)))
+        # код «до 15-го»
+        old = self._code(u, 'OLD'); CodeEntry.objects.filter(pk=old.pk).update(
+            created_at=timezone.make_aware(datetime(2026, 6, 10, 12, 0)))
+        run_draw(r1)
+        self.assertEqual(r1.wins.count(), 1)
+        # новый код «после 15-го» учитывается только во втором розыгрыше
+        new = self._code(u, 'NEW'); CodeEntry.objects.filter(pk=new.pk).update(
+            created_at=timezone.make_aware(datetime(2026, 6, 18, 12, 0)))
+        run_draw(r2)
+        self.assertEqual(r2.wins.count(), 1)
+        self.assertEqual(r2.wins.first().code_text, 'NEW')
 
     def test_raffles_list_endpoint(self):
         Raffle.objects.create(title='Р1', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
         r = APIClient().get('/api/home/raffles/')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data[0]['is_done'], False)
+        self.assertEqual(r.data[0]['winners_count'], 0)
 
 
 class SurveyTests(APITestCase):
