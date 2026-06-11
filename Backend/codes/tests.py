@@ -7,6 +7,7 @@ class SubmitCodeTests(APITestCase):
     def setUp(self):
         self.user = UserProfile.objects.create(telegram_id=1, name='U')
         PromoCode.objects.create(code='PEPSI2026', reward=50)
+        PromoCode.objects.create(code='LOSE0001', reward=0)   # проигрышный код
 
     def submit(self, code):
         return self.client.post('/api/codes/submit/',
@@ -18,6 +19,14 @@ class SubmitCodeTests(APITestCase):
         self.assertEqual(r.data['balance'], 50)
         self.user.refresh_from_db()
         self.assertEqual(self.user.balance, 50)
+
+    def test_losing_code_accepted_no_reward_but_consumed(self):
+        r = self.submit('LOSE0001')
+        self.assertEqual(r.data['entry']['status'], 'lose')
+        self.assertEqual(r.data['balance'], 0)
+        # код одноразовый: повторно — «уже использован»
+        r2 = self.submit('LOSE0001')
+        self.assertEqual(r2.data['entry']['status'], 'used')
 
     def test_invalid_code(self):
         r = self.submit('NETU')

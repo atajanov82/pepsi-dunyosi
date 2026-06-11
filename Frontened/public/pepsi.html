@@ -202,6 +202,7 @@
   .badge.ok{background:#16a34a;color:#fff}
   .badge.bad{background:#dc2626;color:#fff}
   .badge.used{background:#a16207;color:#fff}
+  .badge.lose{background:#475569;color:#fff}
   .badge.prep{background:#d97706;color:#fff}
   .badge.ship{background:#1e63ff;color:#fff}
   .badge.arrived{background:#0891b2;color:#fff}
@@ -711,7 +712,8 @@ async function submitCode(){
   try {
     const r = await api('/codes/submit/', { method:'POST', body:{ code } });
     const st = r.entry.status;
-    toast(st==='accepted' ? ('Код принят! +'+r.entry.reward+' ₽')
+    toast(st==='accepted' ? ('🎉 Код выигрышный! +'+r.entry.reward+' ₽')
+        : st==='lose' ? 'Код принят, но в этот раз без выигрыша 😔'
         : st==='used' ? 'Этот код уже использован'
         : 'Неверный код');
     inp.value = '';
@@ -728,7 +730,8 @@ async function loadCodes(){
     return;
   }
   list.innerHTML = data.entries.map(e=>{
-    const badge = e.status==='accepted' ? '<span class="badge ok">Принят +'+e.reward+'₽</span>'
+    const badge = e.status==='accepted' ? '<span class="badge ok">Выигрыш +'+e.reward+'₽</span>'
+                : e.status==='lose' ? '<span class="badge lose">Не выигрыш</span>'
                 : e.status==='used' ? '<span class="badge used">Уже использован</span>'
                 : '<span class="badge bad">Неверный</span>';
     return '<div class="code-item"><div><b>'+e.code_text+'</b><div class="muted" style="font-size:11px">'+

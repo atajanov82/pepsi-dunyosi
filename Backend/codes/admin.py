@@ -23,9 +23,12 @@ class PromoCodeAdmin(admin.ModelAdmin):
             n = max(1, min(2000, int(request.GET.get('n', 50))))
         except ValueError:
             n = 50
-        codes = generate_unique_codes(n, reward=50)
-        self.message_user(request, f'Создано {len(codes)} уникальных кодов по 50 ₽.',
-                          messages.SUCCESS)
+        rows = generate_unique_codes(n, reward=50, win_ratio=0.2)
+        wins = sum(1 for _, r in rows if r > 0)
+        self.message_user(
+            request,
+            f'Создано {len(rows)} кодов: {wins} выигрышных (по 50 ₽), {len(rows)-wins} проигрышных.',
+            messages.SUCCESS)
         return redirect('..')
 
 

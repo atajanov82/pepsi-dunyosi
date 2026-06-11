@@ -32,14 +32,19 @@ class SubmitCodeView(APIView):
             elif promo.redeemed_by_id is not None:
                 status_, reward = 'used', 0
             else:
-                status_, reward = 'accepted', promo.reward
+                # код валиден и ещё не активирован -> гасим его в любом случае (одноразовый)
                 promo.redeemed_by = profile
                 promo.redeemed_at = timezone.now()
                 promo.save(update_fields=['redeemed_by', 'redeemed_at'])
-                # блокируем профиль перед изменением баланса, чтобы избежать гонки
-                profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
-                profile.balance += reward
-                profile.save(update_fields=['balance'])
+                if promo.reward > 0:
+                    # выигрышный код -> начисляем награду
+                    status_, reward = 'accepted', promo.reward
+                    profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
+                    profile.balance += reward
+                    profile.save(update_fields=['balance'])
+                else:
+                    # проигрышный код -> принят, но без выигрыша
+                    status_, reward = 'lose', 0
 
             entry = CodeEntry.objects.create(user=profile, code_text=code_text,
                                              status=status_, reward=reward)
