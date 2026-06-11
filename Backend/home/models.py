@@ -17,17 +17,29 @@ class Banner(models.Model):
 
 
 class Raffle(models.Model):
-    """Розыгрыш — для блока 'До розыгрыша осталось' (таймер)."""
+    """Розыгрыш на дату: рулетка случайно выбирает выигрышный код среди введённых."""
     title = models.CharField('Название', max_length=200)
     draw_at = models.DateTimeField('Дата и время розыгрыша')
     recording_url = models.URLField('Запись розыгрыша', blank=True)
     is_active = models.BooleanField('Активен', default=True)
 
+    # результат розыгрыша (заполняется при проведении)
+    winner = models.ForeignKey('accounts.UserProfile', verbose_name='Победитель',
+                               null=True, blank=True, on_delete=models.SET_NULL,
+                               related_name='won_raffles')
+    winning_code = models.CharField('Выигравший код', max_length=40, blank=True)
+    drawn_at = models.DateTimeField('Когда проведён', null=True, blank=True)
+
     class Meta:
+        ordering = ['draw_at']
         verbose_name = 'Розыгрыш'; verbose_name_plural = 'Розыгрыши'
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_done(self):
+        return self.winner_id is not None or bool(self.winning_code)
 
 
 class SurveyQuestion(models.Model):

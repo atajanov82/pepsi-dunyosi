@@ -1,6 +1,37 @@
-from rest_framework.test import APITestCase
+from datetime import datetime
+from django.utils import timezone
+from rest_framework.test import APITestCase, APIClient
 from accounts.models import UserProfile
-from .models import SurveyQuestion, SurveyOption, SurveyAnswer
+from codes.models import CodeEntry
+from prizes.models import Prize, UserPrize
+from .models import SurveyQuestion, SurveyOption, SurveyAnswer, Raffle
+from .raffledraw import run_draw
+
+
+class RaffleDrawTests(APITestCase):
+    def test_draw_picks_registered_code_and_awards_prize(self):
+        u = UserProfile.objects.create(telegram_id=42, name='Амир')
+        CodeEntry.objects.create(user=u, code_text='PEPSI-WIN1', status='accepted', reward=50)
+        CodeEntry.objects.create(user=u, code_text='PEPSI-LOSE1', status='lose', reward=0)
+        Prize.objects.create(title='Главный приз', description='...', is_main=True)
+        raffle = Raffle.objects.create(
+            title='Тест', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
+
+        entry = run_draw(raffle)
+        raffle.refresh_from_db()
+        self.assertIsNotNone(entry)
+        self.assertEqual(raffle.winner_id, u.id)
+        self.assertIn(raffle.winning_code, ['PEPSI-WIN1', 'PEPSI-LOSE1'])
+        self.assertTrue(raffle.is_done)
+        self.assertEqual(UserPrize.objects.filter(user=u, status='won').count(), 1)
+        # повторный розыгрыш не перепроводится
+        self.assertIsNone(run_draw(raffle))
+
+    def test_raffles_list_endpoint(self):
+        Raffle.objects.create(title='Р1', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
+        r = APIClient().get('/api/home/raffles/')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data[0]['is_done'], False)
 
 
 class SurveyTests(APITestCase):

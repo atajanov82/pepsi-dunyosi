@@ -78,9 +78,17 @@ class Command(BaseCommand):
             for opt in opts:
                 SurveyOption.objects.get_or_create(question=q, text=opt)
 
-        draw_at = timezone.make_aware(datetime(2026, 6, 6, 18, 0))
-        Raffle.objects.get_or_create(
-            title='Розыгрыш главного приза',
-            defaults={'draw_at': draw_at, 'is_active': True})
+        # 5 дат розыгрышей: 15, 22, 25, 29 июня и финал 1 июля 2026
+        raffle_dates = [
+            ('Розыгрыш 15 июня',  datetime(2026, 6, 15, 18, 0)),
+            ('Розыгрыш 22 июня',  datetime(2026, 6, 22, 18, 0)),
+            ('Розыгрыш 25 июня',  datetime(2026, 6, 25, 18, 0)),
+            ('Розыгрыш 29 июня',  datetime(2026, 6, 29, 18, 0)),
+            ('Финальный розыгрыш — 1 июля', datetime(2026, 7, 1, 18, 0)),
+        ]
+        for title, dt in raffle_dates:
+            Raffle.objects.get_or_create(
+                title=title,
+                defaults={'draw_at': timezone.make_aware(dt), 'is_active': True})
 
         self.stdout.write(self.style.SUCCESS('Демо-данные загружены.'))

@@ -18,13 +18,24 @@ class BannerListView(ListAPIView):
 
 
 class ActiveRaffleView(APIView):
-    """GET /api/home/raffle/ — активный розыгрыш (для таймера)."""
+    """GET /api/home/raffle/ — ближайший непроведённый розыгрыш (для таймера)."""
     def get(self, request):
-        raffle = Raffle.objects.filter(is_active=True).order_by('draw_at').first()
+        from django.utils import timezone
+        pending = Raffle.objects.filter(is_active=True, winner__isnull=True).order_by('draw_at')
+        raffle = (pending.filter(draw_at__gte=timezone.now()).first()
+                  or pending.first()
+                  or Raffle.objects.order_by('-draw_at').first())
         if not raffle:
             return Response({'detail': 'Нет активного розыгрыша'},
                             status=status.HTTP_404_NOT_FOUND)
         return Response(RaffleSerializer(raffle).data)
+
+
+class RaffleListView(APIView):
+    """GET /api/home/raffles/ — все розыгрыши с результатами (Записи розыгрышей)."""
+    def get(self, request):
+        raffles = Raffle.objects.all().order_by('draw_at')
+        return Response(RaffleSerializer(raffles, many=True).data)
 
 
 class SurveyView(APIView):
