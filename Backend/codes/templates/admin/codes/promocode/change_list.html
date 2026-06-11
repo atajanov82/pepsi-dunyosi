@@ -1,0 +1,6 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools-items %}
+  <li><a class="addlink" href="gencodes/?n=50">Сгенерировать 50 кодов</a></li>
+  <li><a class="addlink" href="gencodes/?n=100">Сгенерировать 100 кодов</a></li>
+  {{ block.super }}
+{% endblock %}
