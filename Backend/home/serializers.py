@@ -9,7 +9,7 @@ class BannerSerializer(serializers.ModelSerializer):
 
 
 class RaffleWinSerializer(serializers.Serializer):
-    code_text = serializers.CharField()
+    # код намеренно НЕ отдаём наружу (чувствительные данные)
     prize_title = serializers.CharField(source='prize.title')
     winner_name = serializers.CharField(source='user.name')
 

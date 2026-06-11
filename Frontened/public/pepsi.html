@@ -701,7 +701,8 @@ async function watchRecordings(){
       // список выигравших кодов и их призов
       const winsList = (r.is_done && r.wins && r.wins.length)
         ? '<div style="margin-top:8px;border-top:1px solid #e2e8f0;padding-top:6px">'+
-          r.wins.map(w=>'<div style="font-size:12px;color:#0b2447">🎟 <b>'+w.code_text+'</b> → '+w.prize_title+'</div>').join('')+
+          r.wins.map(w=>'<div style="font-size:12px;color:#0b2447">🏆 '+w.prize_title+
+            (w.winner_name ? ' — <b>'+w.winner_name+'</b>' : '')+'</div>').join('')+
           '</div>'
         : '';
       return '<div class="raffle-row"><b>'+r.title+'</b>'+
