@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import environ
 
@@ -23,7 +24,12 @@ environ.Env.read_env(BASE_DIR / '.env')  # .env читается, если су�
 
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+ALLOWED_HOSTS = list(env('ALLOWED_HOSTS'))
+# Render автоматически предоставляет хост сервиса — добавляем, чтобы не ловить
+# 400 DisallowedHost, даже если переменная ALLOWED_HOSTS не задана вручную.
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if _render_host and _render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_host)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
