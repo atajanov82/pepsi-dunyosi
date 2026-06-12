@@ -8,6 +8,36 @@ from .models import UserProfile
 from .serializers import (RegisterSerializer, ProfileSerializer,
                           PolicySerializer, BirthYearSerializer)
 from .utils import get_user, resolve_telegram_id
+from .telegram import parse_init_data
+
+
+class WhoAmIView(APIView):
+    """GET /api/accounts/whoami/ — диагностика авторизации (без секретов).
+    Помогает безопасно проверить, приходит ли валидный initData, ДО включения строгого режима."""
+    def get(self, request):
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        valid = False
+        tid = None
+        if init_data and settings.TELEGRAM_BOT_TOKEN:
+            u = parse_init_data(init_data, settings.TELEGRAM_BOT_TOKEN,
+                                settings.TELEGRAM_INITDATA_MAX_AGE)
+            if u and u.get('id'):
+                valid, tid = True, u['id']
+        if valid:
+            method = 'initData'
+        elif settings.TELEGRAM_ALLOW_INSECURE and (
+                request.data.get('telegram_id') or request.query_params.get('telegram_id')):
+            method = 'insecure'
+        else:
+            method = 'none'
+        return Response({
+            'method': method,
+            'has_init_data': bool(init_data),
+            'init_data_valid': valid,
+            'token_set': bool(settings.TELEGRAM_BOT_TOKEN),
+            'insecure_mode': settings.TELEGRAM_ALLOW_INSECURE,
+            'telegram_id': tid,
+        })
 
 
 class RegisterView(APIView):
