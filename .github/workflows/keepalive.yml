@@ -1,0 +1,17 @@
+name: Keep backend awake
+
+# Пингуем бэкенд, чтобы free-инстанс Render не засыпал (иначе первый вход ~10-50 сек).
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # каждые 10 минут
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API
+        run: |
+          curl -fsS -m 60 "https://pepsi-backend.onrender.com/api/home/banners/" > /dev/null \
+            && echo "OK: backend awake" \
+            || echo "warn: ping failed"
