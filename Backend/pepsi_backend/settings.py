@@ -69,6 +69,9 @@ WSGI_APPLICATION = 'pepsi_backend.wsgi.application'
 DATABASES = {
     'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 }
+# Переиспользуем подключения к БД между запросами (меньше задержка на дальнюю Neon).
+# 0 = новое соединение каждый запрос (медленно). Через Neon-пулер 60с безопасно.
+DATABASES['default']['CONN_MAX_AGE'] = env.int('CONN_MAX_AGE', default=60)
 
 LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'Asia/Tashkent'
