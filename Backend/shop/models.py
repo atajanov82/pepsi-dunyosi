@@ -11,6 +11,7 @@ class Product(models.Model):
     is_active = models.BooleanField('Активен', default=True)
 
     class Meta:
+        ordering = ['id']   # стабильный порядок: товар не «прыгает» вниз после покупки
         verbose_name = 'Товар'; verbose_name_plural = 'Товары'
 
     def __str__(self):

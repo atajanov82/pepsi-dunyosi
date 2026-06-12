@@ -27,11 +27,11 @@ class PromoCodeAdmin(admin.ModelAdmin):
             n = max(1, min(2000, int(request.POST.get('n') or request.GET.get('n', 50))))
         except (TypeError, ValueError):
             n = 50
-        rows = generate_unique_codes(n, reward=50, win_ratio=0.2)
-        wins = sum(1 for _, r in rows if r > 0)
+        rows = generate_unique_codes(n)   # все выигрышные: 50₽, иногда 100₽
+        big = sum(1 for _, r in rows if r >= 100)
         self.message_user(
             request,
-            f'Создано {len(rows)} кодов: {wins} выигрышных (по 50 ₽), {len(rows)-wins} проигрышных.',
+            f'Создано {len(rows)} кодов: {big} по 100 ₽, {len(rows)-big} по 50 ₽.',
             messages.SUCCESS)
         return redirect('..')
 

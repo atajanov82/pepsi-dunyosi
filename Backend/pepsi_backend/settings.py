@@ -131,6 +131,9 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 MIN_AGE = 8            # минимальный возраст участника (ТЗ: с 8 лет)
 SURVEY_REWARD = 250    # ₽ за прохождение опроса (один раз)
 REFERRAL_REWARD = 10   # ₽ пригласившему за каждого нового друга
+# Розыгрыш: множитель шанса для тех, кто уже выигрывал в прошлых розыгрышах
+# (1.0 = как у всех; 0.3 = втрое меньше; 0 = больше не выигрывают). Участвуют всегда.
+RAFFLE_REPEAT_WIN_FACTOR = env.float('RAFFLE_REPEAT_WIN_FACTOR', default=0.3)
 
 # --- DRF ---
 # Пользователь определяется через Telegram initData (см. accounts/authentication.py),

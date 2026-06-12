@@ -264,6 +264,18 @@
   .modal{background:#fff;color:#0b2447;border-radius:20px;padding:22px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto}
   .raffle-row{padding:12px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px}
   .raffle-row b{font-size:14px;color:#0b2447}
+  /* Опрос (по одному вопросу) */
+  .sv-modal{text-align:center}
+  .sv-title{color:#e32934;font-size:18px;font-weight:900;line-height:1.3}
+  .sv-counter{color:#94a3b8;font-size:13px;margin:6px 0 12px}
+  .sv-progress{height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+  .sv-bar{height:100%;background:linear-gradient(90deg,#e32934,#ff7a85);width:0;transition:width .3s}
+  .sv-options{margin-top:16px;text-align:left}
+  .sv-opt{display:block;width:100%;text-align:left;background:#f1f5f9;color:#0b2447;
+    border:2px solid transparent;border-radius:14px;padding:15px 16px;margin-bottom:10px;
+    font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+  .sv-opt.sel{border-color:#e32934;background:#fff0f1}
+  .sv-nav{display:flex;gap:10px;margin-top:16px}
   .modal h2{font-size:18px;margin-bottom:8px}
   .modal p{font-size:14px;line-height:1.55;font-weight:500;margin-bottom:10px}
   .check{display:flex;gap:10px;align-items:center;font-size:14px;margin:14px 0;cursor:pointer}
@@ -335,22 +347,17 @@
   </div>
 </div>
 
-<!-- SURVEY MODAL -->
+<!-- SURVEY MODAL (по одному вопросу, как у Cola) -->
 <div class="modal-bg" id="surveyModal">
-  <div class="modal">
-    <h2>Опрос Pepsi</h2>
-    <p class="muted" style="color:#64748b">Ответьте на несколько вопросов и получите 250 ₽</p>
-    <div id="surveyForm" style="margin-top:14px;font-size:14px;color:#0b2447">
-      <p style="margin:10px 0 6px"><b>1. Как часто вы пьёте Pepsi?</b></p>
-      <label class="check"><input type="radio" name="q1"> Каждый день</label>
-      <label class="check"><input type="radio" name="q1"> Несколько раз в неделю</label>
-      <label class="check"><input type="radio" name="q1"> Редко</label>
-      <p style="margin:10px 0 6px"><b>2. Какой объём предпочитаете?</b></p>
-      <label class="check"><input type="radio" name="q2"> 0.5 л</label>
-      <label class="check"><input type="radio" name="q2"> 1 л</label>
-      <label class="check"><input type="radio" name="q2"> 2 л</label>
+  <div class="modal sv-modal">
+    <h2 id="sv-q" class="sv-title"></h2>
+    <div id="sv-counter" class="sv-counter"></div>
+    <div class="sv-progress"><div class="sv-bar" id="sv-bar"></div></div>
+    <div id="sv-options" class="sv-options"></div>
+    <div class="sv-nav">
+      <button class="btn ghost" id="sv-back" onclick="svPrev()">← Назад</button>
+      <button class="btn" id="sv-next" onclick="svNext()">Далее →</button>
     </div>
-    <button class="btn" onclick="finishSurvey()">Завершить опрос</button>
   </div>
 </div>
 
@@ -559,6 +566,17 @@ function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// фото из image_url, иначе эмодзи-заглушка
+function pic(url, emoji){
+  return url
+    ? '<img src="'+esc(url)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">'
+    : emoji;
+}
+// подтверждение действия (нативное окно Telegram, иначе обычный confirm)
+function askConfirm(msg, onYes){
+  if(tg && typeof tg.showConfirm === 'function'){ tg.showConfirm(msg, ok=>{ if(ok) onYes(); }); }
+  else if(window.confirm(msg)){ onYes(); }
+}
 // username бота (без @). Можно переопределить в config.js через window.PEPSI_BOT
 const BOT_USERNAME = (window.PEPSI_BOT || 'pepsi_project_bot').replace(/^@/, '');
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
@@ -728,10 +746,10 @@ async function watchRecordings(){
 }
 
 // ===== ПРИЗЫ =====
-function prizeCard(emoji, title, body){
-  // title — простой текст (экранируем); body — уже безопасный HTML (экранирует вызывающий)
+function prizeCard(media, title, body){
+  // media — готовый безопасный HTML (фото/эмодзи); title — текст (экранируем); body — HTML вызывающего
   return '<div class="prize" onclick="this.classList.toggle(\'open\')">'+
-    '<div class="prize-h"><div class="prize-img">'+emoji+'</div><b>'+esc(title)+'</b><div class="arr">▾</div></div>'+
+    '<div class="prize-h"><div class="prize-img">'+media+'</div><b>'+esc(title)+'</b><div class="arr">▾</div></div>'+
     '<div class="prize-body">'+(body||'')+'</div></div>';
 }
 function emptyBlock(text){ return '<div class="empty"><div class="ic">i</div><b>'+esc(text)+'</b></div>'; }
@@ -747,18 +765,18 @@ async function renderPrizes(){
     if(prizeTab === 'won'){
       const list = await api('/prizes/my/?tab=won');
       wrap.innerHTML = list.length
-        ? list.map(up=>prizeCard('🏆', up.prize.title, esc(up.prize.description))).join('')
+        ? list.map(up=>prizeCard(pic(up.prize.image_url,'🏆'), up.prize.title, esc(up.prize.description))).join('')
         : emptyBlock('У вас пока нет выигранных призов');
     } else if(prizeTab === 'buys'){
       const list = await api('/prizes/my/?tab=purchased');
       wrap.innerHTML = list.length
-        ? list.map(pu=>prizeCard('🛍️', pu.product.name,
+        ? list.map(pu=>prizeCard(pic(pu.product.image_url,'🛍️'), pu.product.name,
             'Куплено за '+Number(pu.price_paid)+' ₽ · Статус: '+esc(pu.status_display))).join('')
         : emptyBlock('У вас пока нет покупок');
     } else {
       const list = await api('/prizes/');
       wrap.innerHTML = list.length
-        ? list.map(p=>prizeCard('🎁', p.title,
+        ? list.map(p=>prizeCard(pic(p.image_url,'🎁'), p.title,
             esc(p.description) + (p.win_chance ? '<br><b style="color:#1e63ff">Шанс выигрыша: '+Number(p.win_chance)+'%</b>' : ''))).join('')
         : emptyBlock('Призы скоро появятся');
     }
@@ -800,26 +818,41 @@ async function loadCodes(){
   }).join('');
 }
 
-// ===== ОПРОС =====
+// ===== ОПРОС (по одному вопросу, как у Cola) =====
+let svIdx = 0, svAns = {};
 async function openSurvey(){
   if(me && me.survey_completed){ toast('Вы уже прошли опрос'); return; }
   try {
     surveyQuestions = await api('/home/survey/');
-    const form = document.getElementById('surveyForm');
-    form.innerHTML = surveyQuestions.map((q,qi)=>(
-      '<p style="margin:10px 0 6px"><b>'+(qi+1)+'. '+esc(q.text)+'</b></p>'+
-      q.options.map(o=>'<label class="check"><input type="radio" name="q'+Number(q.id)+'" value="'+Number(o.id)+'"> '+esc(o.text)+'</label>').join('')
-    )).join('');
+    if(!surveyQuestions.length){ toast('Опрос пока недоступен'); return; }
+    svIdx = 0; svAns = {};
+    renderSurveyQ();
     showModal('surveyModal');
   } catch(e){ toast(e.message); }
 }
+function renderSurveyQ(){
+  const q = surveyQuestions[svIdx];
+  const total = surveyQuestions.length;
+  document.getElementById('sv-q').textContent = 'В.' + (svIdx+1) + ' ' + q.text;
+  document.getElementById('sv-counter').textContent = (svIdx+1) + ' / ' + total;
+  document.getElementById('sv-bar').style.width = ((svIdx+1) / total * 100) + '%';
+  document.getElementById('sv-options').innerHTML = q.options.map(o =>
+    '<button class="sv-opt'+(svAns[q.id]===o.id?' sel':'')+'" onclick="svPick('+Number(q.id)+','+Number(o.id)+')">'+
+    esc(o.text)+'</button>').join('');
+  document.getElementById('sv-back').style.visibility = svIdx === 0 ? 'hidden' : 'visible';
+  document.getElementById('sv-next').textContent = svIdx === total-1 ? 'Завершить ✓' : 'Далее →';
+}
+function svPick(qid, oid){ svAns[qid] = oid; renderSurveyQ(); }
+function svPrev(){ if(svIdx > 0){ svIdx--; renderSurveyQ(); } }
+function svNext(){
+  const q = surveyQuestions[svIdx];
+  if(!svAns[q.id]){ toast('Выберите вариант ответа'); return; }
+  if(svIdx < surveyQuestions.length-1){ svIdx++; renderSurveyQ(); }
+  else finishSurvey();
+}
 async function finishSurvey(){
-  const answers = [];
-  for(const q of surveyQuestions){
-    const sel = document.querySelector('input[name="q'+q.id+'"]:checked');
-    if(!sel){ toast('Ответьте на все вопросы'); return; }
-    answers.push({ question:q.id, option:parseInt(sel.value,10) });
-  }
+  const answers = surveyQuestions.map(q => ({ question:q.id, option:svAns[q.id] }));
+  if(answers.some(a => !a.option)){ toast('Ответьте на все вопросы'); return; }
   try {
     await api('/home/survey/submit/', { method:'POST', body:{ answers } });
     hideModal('surveyModal'); toast('Спасибо! +250 ₽'); await refresh();
@@ -838,7 +871,7 @@ async function loadProducts(){
     const btn = out
       ? '<button class="buy" disabled>Нет в наличии</button>'
       : '<button class="buy" onclick="buy('+Number(p.id)+')">Купить</button>';
-    return '<div class="product"><div class="product-img">🥤</div><div class="info"><b>'+esc(p.name)+
+    return '<div class="product"><div class="product-img">'+pic(p.image_url,'🥤')+'</div><div class="info"><b>'+esc(p.name)+
       '</b><span>'+Number(p.price)+' ₽</span>'+left+'</div>'+btn+'</div>';
   }).join('');
 }
@@ -864,13 +897,16 @@ async function loadOrders(){
       '<span class="badge '+cls+'">'+esc(o.status_display)+'</span></div>';
   }).join('');
 }
-async function buy(id){
-  try {
-    await api('/shop/buy/', { method:'POST', body:{ product_id:id } });
-    const p = products.find(x=>x.id===id);
-    toast('Покупка совершена' + (p ? ': '+p.name : ''));
-    await refresh();
-  } catch(e){ toast(e.message); }
+function buy(id){
+  const p = products.find(x=>x.id===id);
+  const msg = 'Купить «'+(p ? p.name : 'товар')+'» за '+(p ? p.price : '')+' ₽?';
+  askConfirm(msg, async ()=>{
+    try {
+      await api('/shop/buy/', { method:'POST', body:{ product_id:id } });
+      toast('Покупка совершена' + (p ? ': '+p.name : ''));
+      await refresh();
+    } catch(e){ toast(e.message); }
+  });
 }
 
 // ===== РЕФЕРАЛ =====
@@ -912,7 +948,14 @@ function renderProfile(){
   document.getElementById('s-rub').textContent = me.balance + ' ₽';
   document.getElementById('shop-bal').textContent = me.balance;
   document.getElementById('pf-name').textContent = me.name || 'Пользователь';
-  document.getElementById('pf-ava').textContent = (me.name || 'U').charAt(0).toUpperCase();
+  // аватар: фото из Telegram, иначе первая буква имени
+  const ava = document.getElementById('pf-ava');
+  const tu = tgUser();
+  if(tu && tu.photo_url){
+    ava.innerHTML = '<img src="'+esc(tu.photo_url)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  } else {
+    ava.textContent = (me.name || 'U').charAt(0).toUpperCase();
+  }
   document.getElementById('pf-id').textContent = 'ID: ' + me.telegram_id;
   document.getElementById('pf-since').textContent = 'С нами с ' + new Date(me.created_at).toLocaleDateString('ru-RU');
   document.getElementById('pf-codes').textContent = me.codes_count;

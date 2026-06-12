@@ -1,4 +1,5 @@
 from datetime import datetime
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase, APIClient
 from accounts.models import UserProfile
@@ -12,7 +13,8 @@ class RaffleDrawTests(APITestCase):
     def _code(self, user, text, status='accepted'):
         return CodeEntry.objects.create(user=user, code_text=text, status=status, reward=0)
 
-    def test_win_chance_100_all_codes_win(self):
+    def test_one_win_per_user_even_with_many_codes(self):
+        # один пользователь с 3 кодами и шансом 100% выигрывает РОВНО один раз
         u = UserProfile.objects.create(telegram_id=42, name='Амир')
         for i in range(3):
             self._code(u, f'C{i}')
@@ -21,11 +23,32 @@ class RaffleDrawTests(APITestCase):
             title='Тест', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
         wins = run_draw(raffle)
         raffle.refresh_from_db()
-        self.assertEqual(len(wins), 3)               # все 3 кода выиграли (шанс 100%)
+        self.assertEqual(len(wins), 1)               # не 3 — максимум один на человека
         self.assertTrue(raffle.is_done)
-        self.assertEqual(raffle.wins.count(), 3)
+        self.assertEqual(raffle.wins.count(), 1)
         self.assertEqual(UserPrize.objects.filter(user=u, status='won').count(), 1)
         self.assertEqual(run_draw(raffle), [])       # повторно не проводится
+
+    @override_settings(RAFFLE_REPEAT_WIN_FACTOR=0)
+    def test_prior_winner_excluded_when_factor_zero(self):
+        # два пользователя; первый выиграл в r1, во r2 (factor=0) выиграть не может
+        u1 = UserProfile.objects.create(telegram_id=51, name='A')
+        u2 = UserProfile.objects.create(telegram_id=52, name='B')
+        Prize.objects.create(title='Комбо', description='...', win_chance=100)
+        r1 = Raffle.objects.create(title='Р1', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
+        r2 = Raffle.objects.create(title='Р2', draw_at=timezone.make_aware(datetime(2026, 6, 22, 18, 0)))
+        c1 = self._code(u1, 'A1'); CodeEntry.objects.filter(pk=c1.pk).update(
+            created_at=timezone.make_aware(datetime(2026, 6, 10, 12, 0)))
+        run_draw(r1)
+        self.assertEqual(r1.wins.count(), 1)         # u1 выиграл
+        # во второй розыгрыш оба вводят новые коды; u1 уже победитель -> factor 0 -> не выигрывает
+        for u, t in [(u1, 'A2'), (u2, 'B2')]:
+            c = self._code(u, t); CodeEntry.objects.filter(pk=c.pk).update(
+                created_at=timezone.make_aware(datetime(2026, 6, 18, 12, 0)))
+        run_draw(r2)
+        winners2 = set(r2.wins.values_list('user_id', flat=True))
+        self.assertIn(u2.id, winners2)
+        self.assertNotIn(u1.id, winners2)            # прошлый победитель исключён при factor=0
 
     def test_zero_chance_no_winners(self):
         u = UserProfile.objects.create(telegram_id=43, name='X')
@@ -35,6 +58,7 @@ class RaffleDrawTests(APITestCase):
             title='Т', draw_at=timezone.make_aware(datetime(2026, 6, 15, 18, 0)))
         self.assertEqual(len(run_draw(raffle)), 0)
 
+    @override_settings(RAFFLE_REPEAT_WIN_FACTOR=1.0)
     def test_incremental_pool_only_new_codes(self):
         u = UserProfile.objects.create(telegram_id=44, name='Y')
         Prize.objects.create(title='Комбо', description='...', win_chance=100)

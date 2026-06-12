@@ -8,6 +8,7 @@
 - Победитель получает приз (UserPrize 'won' -> вкладка «Выигранные») и запись RaffleWin.
 """
 import secrets
+from django.conf import settings
 from django.utils import timezone
 from codes.models import CodeEntry
 from prizes.models import Prize, UserPrize
@@ -34,24 +35,37 @@ def _ticket_pool(raffle):
 
 
 def run_draw(raffle):
-    """Проводит розыгрыш. Возвращает список RaffleWin (победителей)."""
+    """Проводит розыгрыш. Возвращает список RaffleWin (победителей).
+
+    Правила: один пользователь может выиграть НЕ БОЛЕЕ одного приза за розыгрыш;
+    у тех, кто уже выигрывал в прошлых розыгрышах, шанс снижен (RAFFLE_REPEAT_WIN_FACTOR),
+    но они продолжают участвовать."""
     if raffle.is_done:
         return []
     # призы, участвующие в розыгрыше, по возрастанию шанса (редкие — первыми)
     prizes = list(Prize.objects.filter(win_chance__gt=0).order_by('win_chance'))
+    # пользователи, уже выигрывавшие в других розыгрышах -> сниженный шанс
+    prior_winners = set(RaffleWin.objects.exclude(raffle=raffle)
+                        .values_list('user_id', flat=True))
+    repeat_factor = settings.RAFFLE_REPEAT_WIN_FACTOR
     rng = secrets.SystemRandom()
     wins = []
+    won_users = set()   # один выигрыш на пользователя за этот розыгрыш
     for entry in _ticket_pool(raffle):
+        if entry.user_id in won_users:
+            continue
+        factor = repeat_factor if entry.user_id in prior_winners else 1.0
         roll = rng.uniform(0, 100)
         cum = 0.0
         for p in prizes:
-            cum += p.win_chance
+            cum += p.win_chance * factor
             if roll < cum:
                 win = RaffleWin.objects.create(raffle=raffle, user=entry.user,
                                                prize=p, code_text=entry.code_text)
                 UserPrize.objects.get_or_create(user=entry.user, prize=p,
                                                 defaults={'status': 'won'})
                 wins.append(win)
+                won_users.add(entry.user_id)
                 break
     raffle.drawn_at = timezone.now()
     raffle.save(update_fields=['drawn_at'])
