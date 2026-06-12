@@ -22,7 +22,8 @@ def verified_telegram_id(request):
     if not init_data:
         return None
     if settings.TELEGRAM_BOT_TOKEN:
-        tg_user = parse_init_data(init_data, settings.TELEGRAM_BOT_TOKEN)
+        tg_user = parse_init_data(init_data, settings.TELEGRAM_BOT_TOKEN,
+                                  settings.TELEGRAM_INITDATA_MAX_AGE)
         if tg_user and tg_user.get('id'):
             return tg_user['id']
     if settings.TELEGRAM_ALLOW_INSECURE:
@@ -47,6 +48,10 @@ def get_user(request):
         tg = request.data.get('telegram_id') or request.query_params.get('telegram_id')
     if not tg:
         raise NotAuthenticated('Нужна авторизация Telegram')
+    try:
+        tg = int(tg)   # telegram_id всегда числовой; иначе — не валидный запрос
+    except (TypeError, ValueError):
+        raise NotAuthenticated('Некорректный telegram_id')
     try:
         return UserProfile.objects.get(telegram_id=tg)
     except UserProfile.DoesNotExist:

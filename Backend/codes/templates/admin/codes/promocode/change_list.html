@@ -1,6 +1,22 @@
 {% extends "admin/change_list.html" %}
 {% block object-tools-items %}
-  <li><a class="addlink" href="gencodes/?n=50">Сгенерировать 50 кодов</a></li>
-  <li><a class="addlink" href="gencodes/?n=100">Сгенерировать 100 кодов</a></li>
+  <li>
+    <form method="post" action="gencodes/" style="display:inline">
+      {% csrf_token %}
+      <input type="hidden" name="n" value="50">
+      <button type="submit" class="addlink" style="border:0;background:none;cursor:pointer;padding:0">
+        Сгенерировать 50 кодов
+      </button>
+    </form>
+  </li>
+  <li>
+    <form method="post" action="gencodes/" style="display:inline">
+      {% csrf_token %}
+      <input type="hidden" name="n" value="100">
+      <button type="submit" class="addlink" style="border:0;background:none;cursor:pointer;padding:0">
+        Сгенерировать 100 кодов
+      </button>
+    </form>
+  </li>
   {{ block.super }}
 {% endblock %}

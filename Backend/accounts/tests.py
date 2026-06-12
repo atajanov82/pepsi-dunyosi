@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import time
 from datetime import date
 from urllib.parse import urlencode
 from django.test import override_settings
@@ -8,9 +9,10 @@ from rest_framework.test import APITestCase
 from .models import UserProfile
 
 
-def make_init_data(token, user):
-    """Собирает корректно подписанный Telegram initData для тестов."""
-    fields = {'auth_date': '1', 'query_id': 'AAA',
+def make_init_data(token, user, auth_date=None):
+    """Собирает корректно подписанный Telegram initData для тестов (свежий auth_date)."""
+    fields = {'auth_date': str(auth_date if auth_date is not None else int(time.time())),
+              'query_id': 'AAA',
               'user': json.dumps(user, separators=(',', ':'))}
     dcs = '\n'.join(f'{k}={fields[k]}' for k in sorted(fields))
     secret = hmac.new(b'WebAppData', token.encode(), hashlib.sha256).digest()
@@ -37,6 +39,12 @@ class TelegramAuthTests(APITestCase):
         UserProfile.objects.create(telegram_id=557, name='TG')
         r = self.client.get('/api/accounts/profile/', {'telegram_id': 557})
         self.assertEqual(r.status_code, 403)  # insecure off -> без подписи доступа нет
+
+    def test_stale_initdata_rejected(self):
+        UserProfile.objects.create(telegram_id=558, name='TG')
+        old = make_init_data('test-token', {'id': 558}, auth_date=1)  # 1970 г.
+        r = self.client.get('/api/accounts/profile/', HTTP_X_TELEGRAM_INIT_DATA=old)
+        self.assertEqual(r.status_code, 403)  # устаревший initData отвергается
 
 
 class RegisterTests(APITestCase):

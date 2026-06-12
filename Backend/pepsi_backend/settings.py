@@ -5,15 +5,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- Конфигурация из окружения (.env) ---
 env = environ.Env(
-    DEBUG=(bool, True),
+    # Безопасные дефолты: если переменная не задана — берётся прод-безопасное значение.
+    # Локальная разработка переопределяет их в .env (DEBUG=True, INSECURE=True и т.д.).
+    DEBUG=(bool, False),
     SECRET_KEY=(str, 'dev-secret-key-change-in-production'),
-    ALLOWED_HOSTS=(list, ['*']),
+    ALLOWED_HOSTS=(list, ['localhost', '127.0.0.1']),
     CORS_ALLOWED_ORIGINS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     TELEGRAM_BOT_TOKEN=(str, ''),
-    # В режиме разработки разрешаем определять пользователя по telegram_id из запроса
-    # (без подписи Telegram) — чтобы прототип работал в браузере. В проде = False.
-    TELEGRAM_ALLOW_INSECURE=(bool, True),
+    # Определять пользователя по telegram_id из запроса без подписи Telegram —
+    # только для локальной разработки. В проде ДОЛЖНО быть False (+ задан токен бота).
+    TELEGRAM_ALLOW_INSECURE=(bool, False),
+    # Максимальный возраст Telegram initData (сек) — защита от повторного использования.
+    TELEGRAM_INITDATA_MAX_AGE=(int, 86400),
 )
 environ.Env.read_env(BASE_DIR / '.env')  # .env читается, если существует
 
@@ -111,6 +115,11 @@ CORS_ALLOW_HEADERS = (*default_headers, 'x-telegram-init-data')
 # --- Telegram Mini-App ---
 TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN')
 TELEGRAM_ALLOW_INSECURE = env('TELEGRAM_ALLOW_INSECURE')
+TELEGRAM_INITDATA_MAX_AGE = env('TELEGRAM_INITDATA_MAX_AGE')
+
+# Дополнительные заголовки безопасности (применимы и в dev, и в prod)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # --- Бизнес-константы промо-акции (единый источник для всех приложений) ---
 MIN_AGE = 8            # минимальный возраст участника (ТЗ: с 8 лет)
@@ -120,12 +129,19 @@ REFERRAL_REWARD = 10   # ₽ пригласившему за каждого но
 # --- DRF ---
 # Пользователь определяется через Telegram initData (см. accounts/authentication.py),
 # с dev-фолбэком на telegram_id из запроса при TELEGRAM_ALLOW_INSECURE.
+# Browsable API только в DEBUG (в проде — лишняя поверхность/раскрытие).
+_RENDERERS = ['rest_framework.renderers.JSONRenderer']
+if DEBUG:
+    _RENDERERS.append('rest_framework.renderers.BrowsableAPIRenderer')
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
-    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer',
-                                 'rest_framework.renderers.BrowsableAPIRenderer'],
+    'DEFAULT_RENDERER_CLASSES': _RENDERERS,
     'DEFAULT_THROTTLE_CLASSES': ['rest_framework.throttling.ScopedRateThrottle'],
     'DEFAULT_THROTTLE_RATES': {
-        'code_submit': '20/min',   # защита от перебора промокодов
+        'code_submit': '20/min',   # перебор промокодов
+        'register': '30/min',      # спам регистраций / фрод рефералов
+        'buy': '60/min',
+        'survey': '10/min',
     },
 }

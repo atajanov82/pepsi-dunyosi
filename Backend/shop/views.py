@@ -18,6 +18,8 @@ class ProductListView(ListAPIView):
 class BuyView(APIView):
     """POST /api/shop/buy/ — купить товар за рубли (списывает с баланса).
     Списание баланса и уменьшение остатка — атомарно, со взятием строк под блокировку."""
+    throttle_scope = 'buy'
+
     def post(self, request):
         profile = get_user(request)
         s = BuySerializer(data=request.data)

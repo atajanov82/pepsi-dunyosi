@@ -13,6 +13,8 @@ from .utils import get_user, resolve_telegram_id
 class RegisterView(APIView):
     """POST /api/accounts/register/  — регистрация (один раз).
     Принимает необязательный ref (telegram_id пригласившего) — реферальная программа."""
+    throttle_scope = 'register'   # анти-спам / анти-фрод рефералов
+
     def post(self, request):
         s = RegisterSerializer(data=request.data)
         s.is_valid(raise_exception=True)
@@ -21,10 +23,11 @@ class RegisterView(APIView):
 
         # настоящий telegram_id — из проверенного initData (прод), иначе из тела (dev)
         resolved = resolve_telegram_id(request) or data.get('telegram_id')
-        if not resolved:
-            return Response({'detail': 'Нужен telegram_id'},
+        try:
+            data['telegram_id'] = int(resolved)
+        except (TypeError, ValueError):
+            return Response({'detail': 'Нужен корректный telegram_id'},
                             status=status.HTTP_400_BAD_REQUEST)
-        data['telegram_id'] = int(resolved)
 
         with transaction.atomic():
             profile, created = UserProfile.objects.get_or_create(
@@ -61,6 +64,10 @@ class OnboardingStatusView(APIView):
     Если пользователь ещё не зарегистрирован — отдаём шаг 'register' без ошибки."""
     def get(self, request):
         tg = request.query_params.get('telegram_id')
+        try:
+            tg = int(tg) if tg else None
+        except (TypeError, ValueError):
+            tg = None
         profile = UserProfile.objects.filter(telegram_id=tg).first() if tg else None
         if profile is None:
             return Response({'registered': False, 'policy_accepted': False,

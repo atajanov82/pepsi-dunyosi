@@ -49,6 +49,8 @@ class SurveyView(APIView):
 class SubmitSurveyView(APIView):
     """POST /api/home/survey/submit/ — пройти опрос, получить 250 ₽ (один раз).
     Ответы сохраняются; начисление и установка флага — атомарно."""
+    throttle_scope = 'survey'
+
     def post(self, request):
         profile = get_user(request)
         s = SubmitSurveySerializer(data=request.data)

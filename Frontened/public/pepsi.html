@@ -551,9 +551,14 @@
 
 <script>
 // ===== КОНФИГ / TELEGRAM =====
-// Базовый URL API: query-параметр ?api=... либо window.PEPSI_API_BASE, иначе localhost:8000
-const API_BASE = (new URLSearchParams(location.search).get('api')
-                  || window.PEPSI_API_BASE || 'http://localhost:8000/api').replace(/\/$/, '');
+// Базовый URL API задаётся ТОЛЬКО через config.js (window.PEPSI_API_BASE), иначе localhost.
+// ?api= намеренно НЕ поддерживается — иначе по ссылке можно увести initData на чужой сервер.
+const API_BASE = (window.PEPSI_API_BASE || 'http://localhost:8000/api').replace(/\/$/, '');
+// экранирование текста перед вставкой в innerHTML (защита от XSS через данные из БД/Telegram)
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 // username бота (без @). Можно переопределить в config.js через window.PEPSI_BOT
 const BOT_USERNAME = (window.PEPSI_BOT || 'pepsi_project_bot').replace(/^@/, '');
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
@@ -706,16 +711,16 @@ async function watchRecordings(){
         ? '<span class="badge ok">Победителей: '+r.winners_count+'</span>'
         : '<span class="badge lose">Состоится '+d+'</span>';
       const rec = r.recording_url
-        ? ' · <a href="'+r.recording_url+'" target="_blank" style="color:#1e63ff;font-weight:700">смотреть запись</a>'
+        ? ' · <a href="'+esc(r.recording_url)+'" target="_blank" style="color:#1e63ff;font-weight:700">смотреть запись</a>'
         : '';
-      // список выигравших кодов и их призов
+      // список выигравших призов и имён победителей (коды не показываем)
       const winsList = (r.is_done && r.wins && r.wins.length)
         ? '<div style="margin-top:8px;border-top:1px solid #e2e8f0;padding-top:6px">'+
-          r.wins.map(w=>'<div style="font-size:12px;color:#0b2447">🏆 '+w.prize_title+
-            (w.winner_name ? ' — <b>'+w.winner_name+'</b>' : '')+'</div>').join('')+
+          r.wins.map(w=>'<div style="font-size:12px;color:#0b2447">🏆 '+esc(w.prize_title)+
+            (w.winner_name ? ' — <b>'+esc(w.winner_name)+'</b>' : '')+'</div>').join('')+
           '</div>'
         : '';
-      return '<div class="raffle-row"><b>'+r.title+'</b>'+
+      return '<div class="raffle-row"><b>'+esc(r.title)+'</b>'+
              '<div style="font-size:12px;margin-top:5px">'+res+rec+'</div>'+winsList+'</div>';
     }).join('') : '<div class="muted">Розыгрышей пока нет</div>';
     showModal('rafflesModal');
@@ -724,11 +729,12 @@ async function watchRecordings(){
 
 // ===== ПРИЗЫ =====
 function prizeCard(emoji, title, body){
+  // title — простой текст (экранируем); body — уже безопасный HTML (экранирует вызывающий)
   return '<div class="prize" onclick="this.classList.toggle(\'open\')">'+
-    '<div class="prize-h"><div class="prize-img">'+emoji+'</div><b>'+title+'</b><div class="arr">▾</div></div>'+
+    '<div class="prize-h"><div class="prize-img">'+emoji+'</div><b>'+esc(title)+'</b><div class="arr">▾</div></div>'+
     '<div class="prize-body">'+(body||'')+'</div></div>';
 }
-function emptyBlock(text){ return '<div class="empty"><div class="ic">i</div><b>'+text+'</b></div>'; }
+function emptyBlock(text){ return '<div class="empty"><div class="ic">i</div><b>'+esc(text)+'</b></div>'; }
 function setPill(el, key){
   el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
@@ -741,18 +747,19 @@ async function renderPrizes(){
     if(prizeTab === 'won'){
       const list = await api('/prizes/my/?tab=won');
       wrap.innerHTML = list.length
-        ? list.map(up=>prizeCard('🏆', up.prize.title, up.prize.description)).join('')
+        ? list.map(up=>prizeCard('🏆', up.prize.title, esc(up.prize.description))).join('')
         : emptyBlock('У вас пока нет выигранных призов');
     } else if(prizeTab === 'buys'){
       const list = await api('/prizes/my/?tab=purchased');
       wrap.innerHTML = list.length
-        ? list.map(pu=>prizeCard('🛍️', pu.product.name, 'Куплено за '+pu.price_paid+' ₽ · Статус: '+pu.status_display)).join('')
+        ? list.map(pu=>prizeCard('🛍️', pu.product.name,
+            'Куплено за '+Number(pu.price_paid)+' ₽ · Статус: '+esc(pu.status_display))).join('')
         : emptyBlock('У вас пока нет покупок');
     } else {
       const list = await api('/prizes/');
       wrap.innerHTML = list.length
         ? list.map(p=>prizeCard('🎁', p.title,
-            p.description + (p.win_chance ? '<br><b style="color:#1e63ff">Шанс выигрыша: '+p.win_chance+'%</b>' : ''))).join('')
+            esc(p.description) + (p.win_chance ? '<br><b style="color:#1e63ff">Шанс выигрыша: '+Number(p.win_chance)+'%</b>' : ''))).join('')
         : emptyBlock('Призы скоро появятся');
     }
   } catch(e){ wrap.innerHTML = emptyBlock(e.message); }
@@ -788,7 +795,7 @@ async function loadCodes(){
                 : e.status==='lose' ? '<span class="badge lose">Не выигрыш</span>'
                 : e.status==='used' ? '<span class="badge used">Уже использован</span>'
                 : '<span class="badge bad">Неверный</span>';
-    return '<div class="code-item"><div><b>'+e.code_text+'</b><div class="muted" style="font-size:11px">'+
+    return '<div class="code-item"><div><b>'+esc(e.code_text)+'</b><div class="muted" style="font-size:11px">'+
       new Date(e.created_at).toLocaleString('ru-RU')+'</div></div>'+badge+'</div>';
   }).join('');
 }
@@ -800,8 +807,8 @@ async function openSurvey(){
     surveyQuestions = await api('/home/survey/');
     const form = document.getElementById('surveyForm');
     form.innerHTML = surveyQuestions.map((q,qi)=>(
-      '<p style="margin:10px 0 6px"><b>'+(qi+1)+'. '+q.text+'</b></p>'+
-      q.options.map(o=>'<label class="check"><input type="radio" name="q'+q.id+'" value="'+o.id+'"> '+o.text+'</label>').join('')
+      '<p style="margin:10px 0 6px"><b>'+(qi+1)+'. '+esc(q.text)+'</b></p>'+
+      q.options.map(o=>'<label class="check"><input type="radio" name="q'+Number(q.id)+'" value="'+Number(o.id)+'"> '+esc(o.text)+'</label>').join('')
     )).join('');
     showModal('surveyModal');
   } catch(e){ toast(e.message); }
@@ -827,12 +834,12 @@ async function loadProducts(){
     // строка остатка из базы: «Нет в наличии» / «Осталось N шт»
     const left = out
       ? '<span class="stock-left out">Нет в наличии</span>'
-      : '<span class="stock-left'+(p.stock<=5?' low':'')+'">Осталось: '+p.stock+' шт</span>';
+      : '<span class="stock-left'+(p.stock<=5?' low':'')+'">Осталось: '+Number(p.stock)+' шт</span>';
     const btn = out
       ? '<button class="buy" disabled>Нет в наличии</button>'
-      : '<button class="buy" onclick="buy('+p.id+')">Купить</button>';
-    return '<div class="product"><div class="product-img">🥤</div><div class="info"><b>'+p.name+
-      '</b><span>'+p.price+' ₽</span>'+left+'</div>'+btn+'</div>';
+      : '<button class="buy" onclick="buy('+Number(p.id)+')">Купить</button>';
+    return '<div class="product"><div class="product-img">🥤</div><div class="info"><b>'+esc(p.name)+
+      '</b><span>'+Number(p.price)+' ₽</span>'+left+'</div>'+btn+'</div>';
   }).join('');
 }
 // сопоставление статуса заказа с CSS-классом бейджа
@@ -851,10 +858,10 @@ async function loadOrders(){
   }
   list.innerHTML = orders.map(o=>{
     const cls = ORDER_BADGE[o.status] || 'proc';
-    return '<div class="order-item"><div><b>'+o.product.name+'</b>'+
-      '<div class="muted" style="font-size:11px">'+o.price_paid+' ₽ · '+
+    return '<div class="order-item"><div><b>'+esc(o.product.name)+'</b>'+
+      '<div class="muted" style="font-size:11px">'+Number(o.price_paid)+' ₽ · '+
       new Date(o.created_at).toLocaleString('ru-RU')+'</div></div>'+
-      '<span class="badge '+cls+'">'+o.status_display+'</span></div>';
+      '<span class="badge '+cls+'">'+esc(o.status_display)+'</span></div>';
   }).join('');
 }
 async function buy(id){

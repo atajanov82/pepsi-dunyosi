@@ -1,6 +1,26 @@
+from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
 from accounts.models import UserProfile
 from .models import PromoCode
+
+
+class AdminGenCodesTests(APITestCase):
+    def setUp(self):
+        User.objects.create_superuser('boss', 'b@e.com', 'pass12345')
+        self.client.login(username='boss', password='pass12345')
+
+    def test_changelist_renders(self):
+        r = self.client.get('/admin/codes/promocode/')
+        self.assertEqual(r.status_code, 200)   # кастомный шаблон с кнопками рендерится
+
+    def test_gencodes_get_not_allowed(self):
+        r = self.client.get('/admin/codes/promocode/gencodes/')
+        self.assertEqual(r.status_code, 405)   # GET запрещён (анти-CSRF)
+
+    def test_gencodes_post_creates(self):
+        r = self.client.post('/admin/codes/promocode/gencodes/', {'n': 5})
+        self.assertIn(r.status_code, (200, 302))
+        self.assertGreaterEqual(PromoCode.objects.count(), 5)
 
 
 class SubmitCodeTests(APITestCase):

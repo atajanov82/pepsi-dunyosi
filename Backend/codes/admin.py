@@ -1,4 +1,5 @@
 from django.contrib import admin, messages
+from django.http import HttpResponseNotAllowed
 from django.shortcuts import redirect
 from django.urls import path
 from .models import PromoCode, CodeEntry
@@ -19,9 +20,12 @@ class PromoCodeAdmin(admin.ModelAdmin):
         return custom + urls
 
     def gencodes_view(self, request):
+        # только POST (изменяющее действие) — защита от CSRF через GET-ссылку
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
         try:
-            n = max(1, min(2000, int(request.GET.get('n', 50))))
-        except ValueError:
+            n = max(1, min(2000, int(request.POST.get('n') or request.GET.get('n', 50))))
+        except (TypeError, ValueError):
             n = 50
         rows = generate_unique_codes(n, reward=50, win_ratio=0.2)
         wins = sum(1 for _, r in rows if r > 0)

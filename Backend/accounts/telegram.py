@@ -9,12 +9,16 @@
 import hashlib
 import hmac
 import json
+import time
 from urllib.parse import parse_qsl
 
 
-def parse_init_data(init_data: str, bot_token: str):
-    """Проверяет подпись initData. Возвращает dict пользователя (id, first_name, ...)
-    при успехе или None при неверной подписи / отсутствии данных."""
+def parse_init_data(init_data: str, bot_token: str, max_age_seconds: int = 86400):
+    """Проверяет подпись initData (и его свежесть). Возвращает dict пользователя
+    (id, first_name, ...) при успехе или None при неверной подписи / устаревших данных.
+
+    max_age_seconds: отвергаем initData старше указанного срока (анти-replay).
+    """
     if not init_data or not bot_token:
         return None
     try:
@@ -30,6 +34,15 @@ def parse_init_data(init_data: str, bot_token: str):
     calc_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(calc_hash, received_hash):
         return None
+
+    # Свежесть: initData не должен быть слишком старым (защита от повторного использования)
+    if max_age_seconds:
+        try:
+            auth_date = int(parsed.get('auth_date', '0'))
+        except ValueError:
+            return None
+        if auth_date <= 0 or (time.time() - auth_date) > max_age_seconds:
+            return None
 
     try:
         return json.loads(parsed.get('user', '{}'))
