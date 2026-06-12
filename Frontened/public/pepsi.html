@@ -1051,9 +1051,11 @@ setInterval(() => {
 document.getElementById('ob-year').max = new Date().getFullYear();
 // Диагностика авторизации: открой приложение с ?diag=1 — покажет, проверяется ли initData
 if(new URLSearchParams(location.search).get('diag') === '1'){
+  const ref = startRef();
   api('/accounts/whoami/').then(d=>setTimeout(()=>toast(
     'Auth: '+d.method+(d.init_data_valid?' ✅':' ⚠️')+
-    ' | token:'+(d.token_set?'да':'нет')+' | insecure:'+(d.insecure_mode?'да':'нет')), 600)).catch(()=>{});
+    ' | ref: '+(ref ? ref+' ✅' : 'нет ⚠️')+
+    ' | token:'+(d.token_set?'да':'нет')), 600)).catch(()=>{});
 }
 // если пришли по приглашению — подтверждаем (и код сохранится до регистрации)
 if(startRef()) setTimeout(()=>toast('🎁 Вы перешли по приглашению друга'), 800);
